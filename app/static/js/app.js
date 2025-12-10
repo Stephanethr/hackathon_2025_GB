@@ -9,20 +9,67 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('auth-overlay').style.display = 'flex';
     }
 
+    // Toggle Forms
+    document.getElementById('show-register').addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('register-container').style.display = 'block';
+    });
+
+    document.getElementById('show-login').addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('register-container').style.display = 'none';
+        document.getElementById('login-container').style.display = 'block';
+    });
+
     // Login Handler
     document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const u = document.getElementById('username').value;
-        const p = document.getElementById('password').value;
+        // ... previous login logic if needed, but the main logic is likely below in global scope
+    });
+
+    // Register Handler
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const u = document.getElementById('reg-username').value;
+        const em = document.getElementById('reg-email').value;
+        const p = document.getElementById('reg-password').value;
+
+        const msg = document.getElementById('register-msg');
+        msg.style.display = 'none';
+        msg.className = 'auth-msg';
 
         try {
-            const res = await fetch(`${API_BASE}/auth/login`, {
-                method: 'POST', headers: { 'Content-Type': 'json' },
-                body: JSON.stringify({ username: u, password: p })
-            }); // Wait, fetch body needs JSON stringify, but content-type application/json
+            const res = await fetch(`${API_BASE}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, email: em, password: p })
+            });
 
-            // Fix fetch call content-type
-        } catch (e) { }
+            const data = await res.json();
+            if (res.ok) {
+                // Inline success message
+                msg.textContent = "Compte créé ! Redirection...";
+                msg.classList.add('success');
+                msg.style.display = 'block';
+
+                setTimeout(() => {
+                    document.getElementById('register-container').style.display = 'none';
+                    document.getElementById('login-container').style.display = 'block';
+                    document.getElementById('username').value = u;
+                    document.getElementById('password').value = '';
+                    msg.style.display = 'none';
+                }, 1500);
+            } else {
+                msg.textContent = data.message || "Erreur de création.";
+                msg.classList.add('error');
+                msg.style.display = 'block';
+            }
+        } catch (e) {
+            msg.textContent = "Erreur réseau.";
+            msg.classList.add('error');
+            msg.style.display = 'block';
+        }
     });
 });
 
@@ -31,6 +78,10 @@ document.getElementById('login-form').onsubmit = async (e) => {
     e.preventDefault();
     const u = document.getElementById('username').value;
     const p = document.getElementById('password').value;
+
+    const msg = document.getElementById('login-msg');
+    msg.style.display = 'none';
+    msg.className = 'auth-msg';
 
     const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
@@ -48,7 +99,9 @@ document.getElementById('login-form').onsubmit = async (e) => {
         document.getElementById('auth-overlay').style.display = 'none';
         showApp();
     } else {
-        alert(data.message);
+        msg.textContent = data.message || "Erreur de connexion.";
+        msg.classList.add('error');
+        msg.style.display = 'block';
     }
 };
 
@@ -222,8 +275,7 @@ async function loadBookings() {
 }
 
 async function deleteBookingFromList(id) {
-    if (!confirm("Supprimer cette réservation ?")) return;
-
+    // No confirmation as requested for fluidity
     try {
         const res = await fetch(`${API_BASE}/bookings/${id}`, {
             method: 'DELETE',
@@ -232,9 +284,9 @@ async function deleteBookingFromList(id) {
         if (res.ok) {
             loadBookings();
         } else {
-            alert("Erreur lors de la suppression.");
+            console.error("Erreur suppression backend");
         }
     } catch (e) {
-        alert("Erreur réseau.");
+        console.error("Erreur réseau suppression");
     }
 }
