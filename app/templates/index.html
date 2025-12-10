@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkspaceSmart - Assistant Intelligent</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <div id="auth-overlay" class="overlay">
+        <div class="auth-box">
+            <h2>Bienvenue sur WorkspaceSmart</h2>
+            <p>Connectez-vous pour gérer vos espaces.</p>
+            <form id="login-form">
+                <input type="text" id="username" placeholder="Nom d'utilisateur" required value="admin">
+                <input type="password" id="password" placeholder="Mot de passe" required value="password">
+                <button type="submit" class="btn-primary">Se connecter</button>
+                <p class="hint">Demo: admin / password</p>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container" id="app-container" style="display:none;">
+        <header class="top-bar">
+            <div class="logo">Workspace<span>Smart</span></div>
+            <div class="user-info">
+                <span id="user-display">Utilisateur</span>
+                <button id="logout-btn" class="btn-text">Déconnexion</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="chat-section">
+                <div class="chat-header">
+                    <h3>Assistant Workspace</h3>
+                </div>
+                <div id="chat-history" class="chat-history">
+                    <div class="message bot">
+                        <div class="avatar">AI</div>
+                        <div class="text">Bonjour ! Je peux vous aider à réserver une salle. Essayez "Je cherche une
+                            salle pour 5 personnes demain à 14h".</div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Écrivez votre demande..." autocomplete="off">
+                    <button id="send-btn" class="btn-icon">➤</button>
+                </div>
+            </section>
+
+            <section class="dashboard-section">
+                <div class="card quick-actions">
+                    <h3>Actions Rapides</h3>
+                    <div class="buttons">
+                        <button class="btn-secondary"
+                            onclick="setInput('Réserver une salle pour 2 personnes maintenant')">Meeting Rapide
+                            (2p)</button>
+                        <button class="btn-secondary"
+                            onclick="setInput('Disponibilités aujourd\'hui')">Disponibilités</button>
+                    </div>
+                </div>
+
+                <div class="card bookings-list">
+                    <h3>Mes Réservations</h3>
+                    <ul id="bookings-ul">
+                        <!-- Loaded via JS -->
+                        <li class="loading">Chargement...</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+
+</html>
