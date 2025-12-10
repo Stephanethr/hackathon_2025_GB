@@ -59,8 +59,6 @@ pytest
 - [x] JWT Auth (Token Based)
 - [x] Password Hashing (PBKDF2)
 - [x] Input Validation (Basic regex + Type checking)
-- [ ] Dans prod : Set `SECRET_KEY` fort.
-- [ ] Dans prod : Configurer CORS si frontend séparé.
 
 ## API Documentation
 Voir le fichier `openapi.yaml` pour la spécification Swagger des endpoints.
