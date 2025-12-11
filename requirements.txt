@@ -1,6 +1,5 @@
 flask
 flask-sqlalchemy
-flask-migrate
 psycopg2-binary
 python-dotenv
 gunicorn
@@ -8,3 +7,6 @@ PyJWT
 marshmallow
 pytest
 openai
+icalendar
+requests
+pytz

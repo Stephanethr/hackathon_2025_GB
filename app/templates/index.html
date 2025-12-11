@@ -36,8 +36,9 @@
         <!-- App Header -->
         <header class="app-header">
             <div class="app-logo">
-<img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="logo" class="icon-sm" style="height: 1.2rem; width: 1.2rem;">
-               <p>GB<span style="color: #fe6c75;">oo</span>k</p>
+                <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="logo" class="icon-sm"
+                    style="height: 1.2rem; width: 1.2rem;">
+                <p>GB<span style="color: #fe6c75;">oo</span>k</p>
             </div>
             <div class="user-avatar-sm" id="user-avatar-sm">
                 AD
@@ -158,6 +159,22 @@
                 </div>
             </section>
 
+            <!-- VIEW: CALENDAR -->
+            <section id="view-calendar" class="view-section calendar-view">
+                <div class="section-title">
+                    <i data-lucide="calendar"></i>
+                    Mon Agenda
+                    <button class="btn-icon-sm" onclick="openProfileModal()" style="margin-left:auto;"><i
+                            data-lucide="settings"></i></button>
+                </div>
+
+                <div id="calendar-events-container">
+                    <ul id="calendar-events-list" style="list-style: none; padding: 0;">
+                        <!-- JS Loaded -->
+                    </ul>
+                </div>
+            </section>
+
 
         </main>
 
@@ -170,6 +187,10 @@
             <div class="nav-item" onclick="switchTab('chat')">
                 <i data-lucide="message-square"></i>
                 <span>Assistant</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('calendar')">
+                <i data-lucide="calendar"></i>
+                <span>Agenda</span>
             </div>
             <div class="nav-item" onclick="logout()">
                 <i data-lucide="log-out"></i>
@@ -209,6 +230,23 @@
                     <input type="text" id="room-name" placeholder="Nom de la salle" required>
                     <input type="number" id="room-capacity" placeholder="Capacité" required>
                     <input type="text" id="room-equipment" placeholder="Équipements (ex: TV, Projecteur)">
+                    <button type="submit" class="btn-primary">Enregistrer</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="profile-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeProfileModal()">&times;</span>
+                <h3>Paramètres Profil</h3>
+                <form id="profile-form" onsubmit="handleProfileSubmit(event)">
+                    <label style="display:block; margin-bottom:0.5rem; font-size:0.9rem;">URL Calendrier (ICS)</label>
+                    <input type="url" id="profile-ics-url" placeholder="https://..."
+                        style="width:100%; margin-bottom:1rem;">
+                    <p style="font-size:0.8rem; color:#666; margin-bottom:1rem;">
+                        Copiez ici l'adresse privée ou publique au format iCal de votre calendrier (Google, Outlook,
+                        etc).
+                    </p>
                     <button type="submit" class="btn-primary">Enregistrer</button>
                 </form>
             </div>

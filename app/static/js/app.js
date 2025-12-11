@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('ws_token', token);
                     localStorage.setItem('ws_role', userRole);
                     localStorage.setItem('ws_username', data.username);
-                    // document.getElementById('user-display').textContent = data.username; // Removed in mobile
                     document.getElementById('auth-overlay').style.display = 'none';
                     showApp();
                 } else {
@@ -96,6 +95,14 @@ function switchTab(tabName) {
     const navItems = document.querySelectorAll('.nav-item');
     if (tabName === 'dashboard') navItems[0].classList.add('active');
     if (tabName === 'chat') navItems[1].classList.add('active');
+    if (tabName === 'calendar') {
+        // Assuming calendar is the 3rd item as strictly ordered in HTML
+        // dashboard(0), chat(1), calendar(2), logout(3), admin(4)
+        // Wait, let's look at HTML structure: 
+        // 0: dashboard, 1: chat, 2: calendar, 3: logout, 4: admin
+        navItems[2].classList.add('active'); 
+        loadCalendarEvents();
+    }
     if (tabName === 'admin') {
         document.getElementById('nav-admin').classList.add('active');
         switchAdminTab('users'); // Default sub-tab
@@ -174,16 +181,6 @@ async function sendMessage() {
                             msgTextContainer.innerHTML = ''; // Clear loader
                             isFirstChunk = false;
                         }
-                        // Handle simple markdownish formatting (newlines)
-                        // For proper markdown we might need a library, but let's just use simple text append
-                        // or better: utilize innerHTML carefully. 
-                        // The backend sends markdown. We should parse it ideally.
-                        // For now, let's treat it as text but handle newlines as <br> if needed?
-                        // Actually, LLM sends \n. 
-                        // Let's use marked.js if available? No, user didn't ask for markdown library.
-                        // We will just replace \n with <br> and bolding if simple.
-                        // But wait, the previous implementation used simple innerHTML assignment.
-                        // We will accumulate text and regex-replace basic markdown.
 
                         fullResponse += data.content;
                         msgTextContainer.innerHTML = formatMarkdown(fullResponse);
@@ -251,7 +248,6 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         clearTimeout(silenceTimer);
         let finalTranscript = '';
 
-        // Build transcript from results
         for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
                 finalTranscript += event.results[i][0].transcript;
@@ -259,43 +255,12 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                 finalTranscript += event.results[i][0].transcript;
             }
         }
-
-        // Only update if we have something (simplified for single input)
-        // Ideally we would want to append to existing text, but for this use case 
-        // managing cursor position and previous text vs new voice text can be complex.
-        // We will just set the value to what is being spoken for this session.
-        // Or better: Append to what was there before recording started? 
-        // Let's keep it simple: overwrite or append? 
-        // The user wants "le texte se remplit". 
-        // With continuous=true, we get accumulated results in the session.
-        // We'll trust the latest result is the accumulator for this session.
-
-        // Actually, simplest way for 'continuous' is often just handling the latest result
-        // But let's stick to this robust loop pattern.
-
-        // Note: For a simple command field, we might just want to set the value.
-        // But let's check if we want to preserve previous text. 
-        // User request implies dictation.
-
-        // Allow user to edit while speaking? Maybe not.
-
-        // Let's just set the input to the current transcript of this session
-        // We'll reset chatInput.value = ...
-
-        // IMPORTANT: webkitSpeechRecognition behavior:
-        // results contains all results for the session if continuous=true
+        
         let interimTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
             interimTranscript += event.results[i][0].transcript;
         }
 
-        // To avoid complexity, we will just APPEND or SET?
-        // Let's just SET for now as it's a "voice command" style.
-        // If user typed something before, it might be lost if we aren't careful.
-        // But usually voice button = fresh input.
-
-        // Let's use a simpler approach for the specific request: 
-        // Just put what is recognized into the box.
         chatInput.value = interimTranscript;
         chatInput.focus();
 
@@ -414,8 +379,6 @@ window.handleUserSubmit = async function (e) {
         const email = document.getElementById('user-email').value;
         const password = document.getElementById('user-password').value;
         const role = document.getElementById('user-role').value;
-
-        console.log("Submitting User:", { id, username, email, role }); // Debug
 
         if (!id && !password) {
             alert("Le mot de passe est obligatoire pour un nouvel utilisateur.");
@@ -754,3 +717,129 @@ async function deleteBookingFromList(id) {
     }
 }
 
+
+// --- CALENDAR LOGIC ---
+
+async function loadCalendarEvents() {
+    const list = document.getElementById('calendar-events-list');
+    if (!list) return;
+    list.innerHTML = '<li class="loading"><i data-lucide="loader-2" class="animate-spin"></i> Chargement...</li>';
+    lucide.createIcons();
+
+    try {
+        const res = await fetch(`${API_BASE}/calendar/events`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const events = await res.json();
+        list.innerHTML = '';
+        
+        if (!Array.isArray(events)) {
+             // Maybe error message
+             list.innerHTML = `<li style="padding:1rem;">Erreur de chargement.</li>`;
+             return;
+        }
+
+        if (events.length === 0) {
+            list.innerHTML = `
+                <li style="padding:2rem; text-align:center; color:#94a3b8; display:flex; flex-direction:column; align-items:center; gap:1rem;">
+                    <i data-lucide="calendar-off" style="width:3rem; height:3rem; opacity:0.5;"></i>
+                    <p>Aucun événement trouvé.</p>
+                    <button class="btn-sm" onclick="openProfileModal()">Configurer mon calendrier</button>
+                </li>
+            `;
+            lucide.createIcons();
+            return;
+        }
+
+        let currentDayLabel = '';
+
+        events.forEach(e => {
+            const start = new Date(e.start);
+            const end = new Date(e.end);
+            
+            // Date header
+            const dayStr = start.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+            if (dayStr !== currentDayLabel) {
+                list.innerHTML += `<li class="date-header">${dayStr}</li>`;
+                currentDayLabel = dayStr;
+            }
+
+            const startTime = start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            const endTime = end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            
+            const needsRoomBadge = e.needs_room ? '<span class="badge warning" style="font-size:0.7rem; margin-left:auto;">Sans salle</span>' : '';
+            const locationStr = e.location ? `<span style="font-size:0.8rem; color:#64748b;"><i data-lucide="map-pin" class="icon-xs"></i> ${e.location}</span>` : '';
+
+            list.innerHTML += `
+                <li class="booking-item" style="cursor:default;">
+                    <div style="flex:1;">
+                        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem;">
+                            <span style="font-weight:600; color:var(--text-primary);">${startTime} - ${endTime}</span>
+                            ${needsRoomBadge}
+                        </div>
+                        <div style="font-weight:500;">${e.summary}</div>
+                        ${locationStr}
+                    </div>
+                </li>
+            `;
+        });
+        lucide.createIcons();
+
+    } catch (e) {
+        list.innerHTML = '<li style="padding:1rem;">Impossible de charger le calendrier. Vérifiez votre connexion.</li>';
+    }
+}
+
+
+// --- PROFILE / SETTINGS LOGIC ---
+
+async function openProfileModal() {
+    const modal = document.getElementById('profile-modal');
+    modal.classList.add('active');
+    
+    // Load current settings
+    try {
+        const res = await fetch(`${API_BASE}/calendar/settings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById('profile-ics-url').value = data.ics_url || '';
+        }
+    } catch(e) {
+        console.error("Error loading settings");
+    }
+}
+
+function closeProfileModal() {
+    document.getElementById('profile-modal').classList.remove('active');
+}
+
+async function handleProfileSubmit(e) {
+    e.preventDefault();
+    const url = document.getElementById('profile-ics-url').value;
+    
+    try {
+        const res = await fetch(`${API_BASE}/calendar/settings`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ ics_url: url })
+        });
+        
+        if (res.ok) {
+            closeProfileModal();
+            // detailed success message or reload logic?
+            // If we are on calendar tab, reload events
+            if (document.getElementById('view-calendar').classList.contains('active')) {
+                loadCalendarEvents();
+            }
+        } else {
+            alert("Erreur lors de l'enregistrement");
+        }
+    } catch(err) {
+        alert("Erreur réseau");
+    }
+}
