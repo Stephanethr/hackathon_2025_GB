@@ -125,16 +125,20 @@ async function sendMessage() {
     addMessage(text, 'user');
     chatInput.value = '';
 
-    // Loading Indicator
-    const loaderDiv = document.createElement('div');
-    loaderDiv.className = 'message bot loading-msg';
-    loaderDiv.innerHTML = `
+    // Create Bot Message Bubble
+    let botMsgDiv = document.createElement('div');
+    botMsgDiv.className = 'message bot';
+    botMsgDiv.innerHTML = `
         <div class="avatar"><i data-lucide="bot"></i></div>
         <div class="text"><i data-lucide="loader-2" class="animate-spin"></i></div>
     `;
-    chatHistory.appendChild(loaderDiv);
+    chatHistory.appendChild(botMsgDiv);
     lucide.createIcons();
     chatHistory.scrollTop = chatHistory.scrollHeight;
+
+    const msgTextContainer = botMsgDiv.querySelector('.text');
+    let isFirstChunk = true;
+    let fullResponse = "";
 
     try {
         const res = await fetch(`${API_BASE}/chat/message`, {
@@ -145,21 +149,72 @@ async function sendMessage() {
             },
             body: JSON.stringify({ message: text })
         });
-        const data = await res.json();
 
-        // Remove loader
-        loaderDiv.remove();
+        if (!res.ok) throw new Error("Network error");
 
-        addMessage(data.response, 'bot');
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
 
-        if (data.action_required) {
-            handleAction(data);
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            let lines = buffer.split('\n');
+            buffer = lines.pop(); // Keep incomplete line
+
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                try {
+                    const data = JSON.parse(line);
+
+                    if (data.type === 'delta') {
+                        if (isFirstChunk) {
+                            msgTextContainer.innerHTML = ''; // Clear loader
+                            isFirstChunk = false;
+                        }
+                        // Handle simple markdownish formatting (newlines)
+                        // For proper markdown we might need a library, but let's just use simple text append
+                        // or better: utilize innerHTML carefully. 
+                        // The backend sends markdown. We should parse it ideally.
+                        // For now, let's treat it as text but handle newlines as <br> if needed?
+                        // Actually, LLM sends \n. 
+                        // Let's use marked.js if available? No, user didn't ask for markdown library.
+                        // We will just replace \n with <br> and bolding if simple.
+                        // But wait, the previous implementation used simple innerHTML assignment.
+                        // We will accumulate text and regex-replace basic markdown.
+
+                        fullResponse += data.content;
+                        msgTextContainer.innerHTML = formatMarkdown(fullResponse);
+                        chatHistory.scrollTop = chatHistory.scrollHeight;
+
+                    } else if (data.type === 'action') {
+                        handleAction({ action_required: data.data.action_required, payload: data.data.payload }, botMsgDiv);
+                    } else if (data.type === 'error') {
+                        msgTextContainer.textContent = data.content;
+                    }
+
+                } catch (e) {
+                    console.error("Stream Parse Error", e);
+                }
+            }
         }
+        lucide.createIcons();
 
     } catch (err) {
-        loaderDiv.remove();
-        addMessage("Erreur de connexion...", 'bot');
+        msgTextContainer.innerHTML = "Erreur de connexion.";
+        msgTextContainer.classList.add('error');
     }
+}
+
+function formatMarkdown(text) {
+    // Simple markdown formatter
+    let html = text
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') // Bold
+        .replace(/- /g, '&bull; '); // Bullets
+    return html;
 }
 
 
@@ -497,8 +552,8 @@ async function deleteRoom(id) {
     loadRooms();
 }
 
-function handleAction(data) {
-    const container = chatHistory.lastElementChild.querySelector('.text');
+function handleAction(data, targetElement = null) {
+    const container = targetElement ? targetElement.querySelector('.text') : chatHistory.lastElementChild.querySelector('.text');
     const btn = document.createElement('button');
     btn.className = 'btn-primary';
     btn.style.marginTop = '0.5rem';
@@ -508,6 +563,9 @@ function handleAction(data) {
     if (data.action_required === 'confirm_booking') {
         btn.innerHTML = '<i data-lucide="check"></i> Confirmer';
         btn.onclick = () => confirmBooking(data.payload);
+    } else if (data.action_required === 'confirm_modification') {
+        btn.innerHTML = '<i data-lucide="check"></i> Confirmer Modification';
+        btn.onclick = () => confirmModification(data.payload);
     } else if (data.action_required === 'confirm_cancel') {
         btn.innerHTML = '<i data-lucide="x-circle"></i> Confirmer Annulation';
         btn.onclick = () => confirmCancellation(data.payload);
@@ -550,7 +608,34 @@ async function confirmBooking(payload) {
     if (res.ok) {
         addMessage(`✅ Réservation confirmée ! ID: ${data.id}`, 'bot');
         loadBookings();
-        fetch(`${API_BASE}/chat/context`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        // Update context instead of clearing
+        fetch(`${API_BASE}/chat/context/last_booking`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ booking_id: data.id })
+        });
+    } else {
+        addMessage(`❌ Erreur: ${data.error}`, 'bot');
+    }
+}
+
+async function confirmModification(payload) {
+    addMessage("Confirmation modification...", 'user');
+    const res = await fetch(`${API_BASE}/bookings/${payload.booking_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok) {
+        addMessage(`✅ Réservation modifiée ! ID: ${data.id}`, 'bot');
+        loadBookings();
+        // Update context
+        fetch(`${API_BASE}/chat/context/last_booking`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ booking_id: data.id })
+        });
     } else {
         addMessage(`❌ Erreur: ${data.error}`, 'bot');
     }

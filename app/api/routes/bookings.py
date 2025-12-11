@@ -28,6 +28,28 @@ def create_booking(current_user):
     except Exception as e:
         return jsonify({'error': 'Server Error', 'details': str(e)}), 500
 
+@bookings_bp.route('/<int:booking_id>', methods=['PUT'])
+@token_required
+def update_booking(current_user, booking_id):
+    data = request.get_json()
+    try:
+        start = datetime.fromisoformat(data['start_time'])
+        end = datetime.fromisoformat(data['end_time'])
+        
+        booking = BookingService.update_booking(
+            booking_id=booking_id,
+            user_id=current_user.id,
+            room_id=data.get('room_id'),
+            start_time=start,
+            end_time=end,
+            attendees=data.get('attendees')
+        )
+        return jsonify(booking.to_dict()), 200
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': 'Server Error', 'details': str(e)}), 500
+
 @bookings_bp.route('/my_bookings', methods=['GET'])
 @token_required
 def get_my_bookings(current_user):

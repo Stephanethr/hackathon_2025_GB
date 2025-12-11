@@ -22,31 +22,54 @@ class BookingService:
         return True
 
     @staticmethod
-    def check_availability(room_id, start_time, end_time):
-        """Check if room is free during interval."""
-        # Find any booking that overlaps
-        # (StartA < EndB) and (EndA > StartB)
-        conflict = Booking.query.filter(
+    def is_capacity_coherent(capacity: int, attendees: int) -> bool:
+        """
+        Check if the room capacity is 'coherent' for the number of attendees.
+        Rule: Coherent if capacity <= max(attendees * 3, 20).
+        This means for 4 people, up to 20 is fine. 50 (Auditorium) is not.
+        """
+        threshold = max(attendees * 3, 20)
+        return capacity <= threshold
+
+    @staticmethod
+    def check_availability(room_id, start_time, end_time, exclude_booking_id=None):
+        """Check if room is free during interval, optionally excluding a specific booking."""
+        query = Booking.query.filter(
             Booking.room_id == room_id,
             Booking.status == 'confirmed',
             Booking.start_time < end_time,
             Booking.end_time > start_time
-        ).first()
+        )
+        
+        if exclude_booking_id:
+            query = query.filter(Booking.id != exclude_booking_id)
+            
+        conflict = query.first()
         return conflict is None
 
     @staticmethod
-    def find_potential_rooms(start_time, end_time, attendees: int, required_equipment: list = None):
+    def find_potential_rooms(start_time, end_time, attendees: int, required_equipment: list = None, preferred_room_name: str = None):
         """Find all rooms that are free and fit the attendees."""
         # 1. Filter by capacity
         capable_rooms = Room.query.filter(Room.capacity >= attendees, Room.is_active == True).all()
         
-        # 2. Filter by Equipment (if requested)
+        # 2. Filter by Preferred Name (if requested)
+        if preferred_room_name:
+            # Normalize for comparison
+            pref = preferred_room_name.lower().strip()
+            # Try exact/partial match
+            named_matches = [r for r in capable_rooms if pref in r.name.lower()]
+            if named_matches:
+                 capable_rooms = named_matches
+            # If no match found, we might fall back to all capable rooms or return empty.
+            # Decision: if user asks for specific room and it doesn't exist/fit, return empty to let Upper Layer explain.
+            else:
+                 return []
+
+        # 3. Filter by Equipment (if requested)
         if required_equipment:
             filtered_rooms = []
             for room in capable_rooms:
-                # Room equipment is stored as JSON list e.g. ["TV", "Projector"]
-                # We need to check if ALL required items are in the room's equipment list.
-                # Case insensitive check
                 if not room.equipment:
                     continue
                     
@@ -67,6 +90,16 @@ class BookingService:
         
         # Sort by capacity ascending (Best fit first)
         available_rooms.sort(key=lambda r: r.capacity)
+        
+        # 4. Smart Filtering: Hide oversized rooms if "Good Fit" rooms are available.
+        # "Good fit" = capacity <= attendees * 3 (arbitrary heuristic, e.g. 4 people fit in 12-person room, but 50-person is too big)
+        # Only apply if we have multiple options.
+        if len(available_rooms) > 1 and not preferred_room_name:
+             good_fits = [r for r in available_rooms if r.capacity <= (attendees * 4)]
+             if good_fits:
+                 # If we have good fits, only return those.
+                 available_rooms = good_fits
+        
         return available_rooms
 
     @staticmethod
@@ -133,6 +166,54 @@ class BookingService:
             attendees_count=attendees
         )
         db.session.add(booking)
+        db.session.commit()
+        return booking
+
+    @staticmethod
+    def update_booking(booking_id, user_id, start_time=None, end_time=None, attendees=None, room_id=None):
+        """
+        Modify an existing booking.
+        """
+        booking = Booking.query.get(booking_id)
+        if not booking:
+            raise ValueError("Réservation introuvable.")
+            
+        if booking.user_id != user_id:
+            raise ValueError("Non autorisé.")
+            
+        # Use existing values if not provided
+        if not start_time: start_time = booking.start_time
+        if not end_time: end_time = booking.end_time
+        if not attendees: attendees = booking.attendees_count
+        target_room_id = room_id if room_id else booking.room_id
+        
+        # 0. Working Hours Check
+        if not BookingService.is_within_working_hours(start_time, end_time):
+             raise ValueError("Les nouveaux horaires sont hors des heures d'ouverture.")
+
+        target_room = Room.query.get(target_room_id)
+        if not target_room:
+             raise ValueError("Salle introuvable.")
+             
+        # 1. Capacity Check
+        if target_room.capacity < attendees:
+             raise ValueError(f"La salle {target_room.name} est trop petite pour {attendees} personnes.")
+
+        # 2. Availability Check (Excluding current booking)
+        if not BookingService.check_availability(target_room_id, start_time, end_time, exclude_booking_id=booking_id):
+             raise ValueError("La salle est déjà prise sur ce nouveau créneau.")
+             
+        # 3. Optimization Rule
+        valid, msg = BookingService.validate_booking_rules(target_room, attendees, start_time, end_time)
+        if not valid:
+             raise ValueError(msg)
+             
+        # Apply updates
+        booking.start_time = start_time
+        booking.end_time = end_time
+        booking.attendees_count = attendees
+        booking.room_id = target_room_id
+        
         db.session.commit()
         return booking
 
