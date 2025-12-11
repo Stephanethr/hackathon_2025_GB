@@ -21,6 +21,9 @@ def create_app(config_class=DevelopmentConfig):
     app.register_blueprint(bookings_bp, url_prefix='/api/bookings')
     app.register_blueprint(chat_bp, url_prefix='/api/chat')
     app.register_blueprint(main_bp)
+    
+    from app.api.routes.admin import admin_bp
+    app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
     def health():
         return {"status": "ok", "app": "WorkspaceSmart"}

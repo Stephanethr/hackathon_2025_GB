@@ -55,12 +55,21 @@ document.addEventListener('DOMContentLoaded', () => {
 function showApp() {
     document.getElementById('app-container').style.display = 'flex';
     document.getElementById('auth-overlay').style.display = 'none';
+
+    // Check Admin Role
+    if (userRole === 'admin') {
+        document.getElementById('nav-admin').style.display = 'flex';
+    } else {
+        document.getElementById('nav-admin').style.display = 'none';
+    }
+
     lucide.createIcons();
     loadBookings();
 }
 
 function logout() {
     localStorage.removeItem('ws_token');
+    localStorage.removeItem('ws_role'); // Clear role
     location.reload();
 }
 
@@ -75,10 +84,13 @@ function switchTab(tabName) {
     document.getElementById(`view-${tabName}`).classList.add('active');
 
     // Activate nav item
-    // Simple lookup based on onclick string
     const navItems = document.querySelectorAll('.nav-item');
     if (tabName === 'dashboard') navItems[0].classList.add('active');
     if (tabName === 'chat') navItems[1].classList.add('active');
+    if (tabName === 'admin') {
+        document.getElementById('nav-admin').classList.add('active');
+        switchAdminTab('users'); // Default sub-tab
+    }
 
     lucide.createIcons();
 }
@@ -255,6 +267,226 @@ if (micBtn) {
 
 if (sendBtn) sendBtn.onclick = sendMessage;
 if (chatInput) chatInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
+
+
+// --- ADMIN LOGIC ---
+
+function switchAdminTab(tab) {
+    // Buttons
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
+    // Matching button
+    const btns = document.querySelectorAll('.admin-tab-btn');
+    if (tab === 'users') btns[0].classList.add('active');
+    if (tab === 'rooms') btns[1].classList.add('active');
+
+    // Views
+    document.getElementById('admin-users-view').style.display = tab === 'users' ? 'block' : 'none';
+    document.getElementById('admin-rooms-view').style.display = tab === 'rooms' ? 'block' : 'none';
+
+    // Load data
+    if (tab === 'users') loadUsers();
+    if (tab === 'rooms') loadRooms();
+}
+
+// USERS CRUD
+async function loadUsers() {
+    const list = document.getElementById('admin-users-list');
+    list.innerHTML = '<tr><td colspan="4">Chargement...</td></tr>';
+
+    try {
+        const res = await fetch(`${API_BASE}/admin/users`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const users = await res.json();
+        list.innerHTML = '';
+        users.forEach(u => {
+            list.innerHTML += `
+                <tr>
+                    <td>${u.username}</td>
+                    <td><span class="badge ${u.role}">${u.role}</span></td>
+                    <td class="action-cell">
+                        <button class="btn-icon btn-edit" onclick="editUser(${u.id})"><i data-lucide="edit-2"></i></button>
+                        <button class="btn-icon btn-delete-sm" onclick="deleteUser(${u.id})"><i data-lucide="trash-2"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+        lucide.createIcons();
+    } catch (e) {
+        list.innerHTML = '<tr><td colspan="4">Erreur chargement</td></tr>';
+    }
+}
+
+function openUserModal(user = null) {
+    const modal = document.getElementById('user-modal');
+    modal.classList.add('active');
+    document.getElementById('user-form').reset();
+    if (user) {
+        document.getElementById('user-id').value = user.id;
+        document.getElementById('user-username').value = user.username;
+        document.getElementById('user-email').value = user.email;
+        document.getElementById('user-role').value = user.role;
+    } else {
+        document.getElementById('user-id').value = '';
+    }
+}
+
+function closeUserModal() {
+    document.getElementById('user-modal').classList.remove('active');
+}
+
+async function editUser(id) {
+    const res = await fetch(`${API_BASE}/admin/users`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const users = await res.json();
+    const user = users.find(u => u.id === id);
+    if (user) openUserModal(user);
+}
+
+window.handleUserSubmit = async function (e) {
+    e.preventDefault();
+    try {
+        const id = document.getElementById('user-id').value;
+        const username = document.getElementById('user-username').value;
+        const email = document.getElementById('user-email').value;
+        const password = document.getElementById('user-password').value;
+        const role = document.getElementById('user-role').value;
+
+        console.log("Submitting User:", { id, username, email, role }); // Debug
+
+        if (!id && !password) {
+            alert("Le mot de passe est obligatoire pour un nouvel utilisateur.");
+            return;
+        }
+
+        const url = id ? (`${API_BASE}/admin/users/${id}`) : (`${API_BASE}/admin/users`);
+        const method = id ? 'PUT' : 'POST';
+
+        const body = { username, email, role };
+        if (password) body.password = password;
+
+        const res = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            closeUserModal();
+            loadUsers();
+        } else {
+            alert("Erreur: " + (data.message || "Impossible d'enregistrer"));
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Erreur JS: " + err.message);
+    }
+}
+
+async function deleteUser(id) {
+    // No confirmation
+    await fetch(`${API_BASE}/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    loadUsers();
+}
+
+
+// ROOMS CRUD
+async function loadRooms() {
+    const list = document.getElementById('admin-rooms-list');
+    list.innerHTML = '<tr><td colspan="4">Chargement...</td></tr>';
+
+    try {
+        const res = await fetch(`${API_BASE}/admin/rooms`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const rooms = await res.json();
+        list.innerHTML = '';
+        rooms.forEach(r => {
+            list.innerHTML += `
+                <tr>
+                    <td>${r.name}</td>
+                    <td>${r.capacity}p</td>
+                    <td><span class="text-sm text-muted">${Array.isArray(r.equipment) ? r.equipment.join(', ') : ''}</span></td>
+                    <td class="action-cell">
+                        <button class="btn-icon btn-edit" onclick="editRoom(${r.id})"><i data-lucide="edit-2"></i></button>
+                        <button class="btn-icon btn-delete-sm" onclick="deleteRoom(${r.id})"><i data-lucide="trash-2"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+        lucide.createIcons();
+    } catch (e) {
+        list.innerHTML = '<tr><td colspan="4">Erreur chargement</td></tr>';
+    }
+}
+
+function openRoomModal(room = null) {
+    const modal = document.getElementById('room-modal');
+    modal.classList.add('active');
+    document.getElementById('room-form').reset();
+    if (room) {
+        document.getElementById('room-id').value = room.id;
+        document.getElementById('room-name').value = room.name;
+        document.getElementById('room-capacity').value = room.capacity;
+        document.getElementById('room-equipment').value = Array.isArray(room.equipment) ? room.equipment.join(', ') : '';
+    } else {
+        document.getElementById('room-id').value = '';
+    }
+}
+
+function closeRoomModal() {
+    document.getElementById('room-modal').classList.remove('active');
+}
+
+async function editRoom(id) {
+    const res = await fetch(`${API_BASE}/admin/rooms`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const rooms = await res.json();
+    const room = rooms.find(r => r.id === id);
+    if (room) openRoomModal(room);
+}
+
+async function handleRoomSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('room-id').value;
+    const name = document.getElementById('room-name').value;
+    const capacity = document.getElementById('room-capacity').value;
+    const eqStr = document.getElementById('room-equipment').value;
+
+    // Parse equipment
+    const equipment = eqStr.split(',').map(s => s.trim()).filter(s => s !== '');
+
+    const url = id ? (`${API_BASE}/admin/rooms/${id}`) : (`${API_BASE}/admin/rooms`);
+    const method = id ? 'PUT' : 'POST';
+
+    const body = { name, capacity: parseInt(capacity), equipment, is_active: true }; // Always active
+
+    await fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+    });
+
+    closeRoomModal();
+    loadRooms();
+}
+
+async function deleteRoom(id) {
+    // No confirmation
+    const res = await fetch(`${API_BASE}/admin/rooms/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    loadRooms();
+}
 
 function handleAction(data) {
     const container = chatHistory.lastElementChild.querySelector('.text');

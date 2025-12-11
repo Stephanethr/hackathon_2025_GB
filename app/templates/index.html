@@ -102,6 +102,63 @@
                 </div>
             </section>
 
+            <!-- VIEW: ADMIN -->
+            <section id="view-admin" class="view-section admin-view">
+                <div class="section-title">
+                    <i data-lucide="shield"></i>
+                    Administration
+                </div>
+
+                <div class="admin-tabs">
+                    <button class="admin-tab-btn active" onclick="switchAdminTab('users')">Utilisateurs</button>
+                    <button class="admin-tab-btn" onclick="switchAdminTab('rooms')">Salles</button>
+                </div>
+
+                <div id="admin-users-view" class="admin-subview">
+                    <div class="admin-toolbar">
+                        <h3>Gestion Utilisateurs</h3>
+                        <button class="btn-sm" onclick="openUserModal()"><i data-lucide="plus"></i> Nouveau</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Role</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-list">
+                                <!-- Loaded by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="admin-rooms-view" class="admin-subview" style="display:none;">
+                    <div class="admin-toolbar">
+                        <h3>Gestion Salles</h3>
+                        <button class="btn-sm" onclick="openRoomModal()"><i data-lucide="plus"></i> Nouvelle</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Capacité</th>
+                                    <th>Équipements</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-rooms-list">
+                                <!-- Loaded by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+
         </main>
 
         <!-- Bottom Navigation -->
@@ -118,7 +175,44 @@
                 <i data-lucide="log-out"></i>
                 <span>Sortir</span>
             </div>
+            <div class="nav-item" id="nav-admin" style="display:none;" onclick="switchTab('admin')">
+                <i data-lucide="shield"></i>
+                <span>Admin</span>
+            </div>
         </nav>
+
+        <!-- Admin Modals -->
+        <div id="user-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeUserModal()">&times;</span>
+                <h3>Utilisateur</h3>
+                <form id="user-form" onsubmit="handleUserSubmit(event)">
+                    <input type="hidden" id="user-id">
+                    <input type="text" id="user-username" placeholder="Identifiant" required>
+                    <input type="email" id="user-email" placeholder="Email" required>
+                    <input type="password" id="user-password" placeholder="Mot de passe (vide si inchangé)">
+                    <select id="user-role">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button type="submit" class="btn-primary">Enregistrer</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="room-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeRoomModal()">&times;</span>
+                <h3>Salle</h3>
+                <form id="room-form" onsubmit="handleRoomSubmit(event)">
+                    <input type="hidden" id="room-id">
+                    <input type="text" id="room-name" placeholder="Nom de la salle" required>
+                    <input type="number" id="room-capacity" placeholder="Capacité" required>
+                    <input type="text" id="room-equipment" placeholder="Équipements (ex: TV, Projecteur)">
+                    <button type="submit" class="btn-primary">Enregistrer</button>
+                </form>
+            </div>
+        </div>
 
     </div>
 
