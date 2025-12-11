@@ -5,6 +5,7 @@ from app.utils.decorators import token_required
 from datetime import datetime, timedelta
 import json
 from app.models import Booking, Room
+from app.config import Config
 
 chat_bp = Blueprint('chat', __name__)
 
@@ -60,17 +61,33 @@ def chat(current_user):
         room_name = slots.get('room_name')
         
         # 1. Check Mandatory Slots
+        missing_fields = []
         if not start_time_str:
-            return respond("User wants to book but didn't specify date/time. Ask for it.")
-
+            missing_fields.append("la date/heure")
         if not attendees:
-             return respond("User wants to book but didn't specify attendees count. Ask for it.")
-
+            missing_fields.append("le nombre de personnes")
         if not duration:
-            return respond("User wants to book but didn't specify duration. Ask for it.")
+            missing_fields.append("la durée")
+
+        if missing_fields:
+            if len(missing_fields) == 1:
+                return respond(f"User wants to book but didn't specify {missing_fields[0]}. Ask for it.")
+            else:
+                fields_str = ", ".join(missing_fields)
+                return respond(f"User wants to book but is missing details: {fields_str}. Ask for all of them.")
             
         try:
             start_time = datetime.fromisoformat(start_time_str)
+            
+            # Check for generic working hours or midnight default
+            # Use strict comparison for start hour
+            if start_time.hour < Config.WORKING_HOURS_START or start_time.hour >= Config.WORKING_HOURS_END:
+                # If specific case 00:00, it's likely missing time
+                if start_time.hour == 0 and start_time.minute == 0:
+                     return respond(f"User specified date but likely not time. Ask for time between {Config.WORKING_HOURS_START}h and {Config.WORKING_HOURS_END}h.")
+                else:
+                     return respond(f"Requested time {start_time.strftime('%H:%M')} is outside working hours ({Config.WORKING_HOURS_START}h-{Config.WORKING_HOURS_END}h). Ask user to pick a valid time.")
+
             end_time = start_time + timedelta(minutes=duration)
         except ValueError:
              return respond("Date format error. Ask user to repeat date.")
@@ -85,17 +102,44 @@ def chat(current_user):
         )
         
         if not rooms:
-            # Proactive suggestions
+            # Proactive suggestions & Diagnosis
             alternatives = BookingService.get_availabilities(start_time.strftime("%Y-%m-%d"), min_capacity=attendees)
             
             ctx = f"User wanted to book for {attendees} people on {start_time.strftime('%d/%m at %H:%M')}.\n"
             if equipment:
                 ctx += f"Equipment required: {', '.join(equipment)}.\n"
             
-            ctx += "Outcome: No exact match found.\n"
+            # --- DIAGNOSIS FOR SPECIFIC ROOM REQUEST ---
+            diagnosis_msg = ""
+            if room_name:
+                # User asked for a specific room, but it wasn't returned using find_potential_rooms.
+                # Let's find out why.
+                # 1. Find the room by loosely matching name again (manual or simple query)
+                all_rooms = Room.query.all()
+                target_room = next((r for r in all_rooms if room_name.lower() in r.name.lower()), None)
+                
+                if not target_room:
+                     diagnosis_msg = f"The requested room '{room_name}' does not exist.\n"
+                else:
+                    # Check Capacity
+                    if target_room.capacity < attendees:
+                        diagnosis_msg = f"The requested room '{target_room.name}' is too small (Capacity {target_room.capacity} vs Requested {attendees}).\n"
+                    # Check Availability
+                    elif not BookingService.check_availability(target_room.id, start_time, end_time):
+                        diagnosis_msg = f"The requested room '{target_room.name}' is already booked during this time.\n"
+                    # Check Equipment?
+                    elif equipment:
+                         diagnosis_msg = f"The requested room '{target_room.name}' does not have the required equipment.\n"
+                    else:
+                         diagnosis_msg = f"The requested room '{target_room.name}' is unavailable for an unknown reason.\n"
+
+            if diagnosis_msg:
+                 ctx += f"Outcome: {diagnosis_msg}"
+            else:
+                 ctx += "Outcome: No exact match found.\n"
             
             if alternatives:
-                ctx += "Alternatives found for the same day (Please present them clearly as a list):\n"
+                ctx += "Alternatives found for the same day (Present these clearly):\n"
                 for item in alternatives:
                     slots_text = ", ".join([f"{s['start']}-{s['end']}" for s in item['slots']])
                     ctx += f"- {item['room_name']} ({item['capacity']}p): {slots_text}\n"
@@ -142,7 +186,7 @@ def chat(current_user):
 
     elif intent == 'QUERY_AVAILABILITY':
         start_time_str = slots.get('start_time')
-        attendees = slots.get('attendees', 1)
+        attendees = slots.get('attendees') or 1
         
         availabilities = BookingService.get_availabilities(start_time_str, min_capacity=attendees)
         

@@ -1,5 +1,5 @@
 from openai import OpenAI
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
 from app.config import Config
@@ -16,9 +16,24 @@ class NLPService:
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         weekday = datetime.now().strftime("%A")
 
+        # Generate reference calendar for the next 7 days to help LLM with dates
+        reference_calendar = "Reference Calendar (Next 7 days):\n"
+        today_date = datetime.now()
+        for i in range(8):
+            day = today_date + timedelta(days=i)
+            # Use English weekday names as system prompt is in English, 
+            # but maybe user input is French. LLM should map it.
+            # Using %A gives day name in locale, which might be mixed if locale is not set.
+            # Let's force English or just rely on ISO date.
+            # Actually, let's just use the iso format and a simple day name if possible.
+            # safe assumption: LLM understands dates.
+            reference_calendar += f"- {day.strftime('%A')} {day.strftime('%Y-%m-%d')}\n"
+
         system_prompt = f"""
         You are a smart workspace assistant.
         Current Date/Time: {current_time} ({weekday}).
+        
+        {reference_calendar}
         
         Analyze the conversation history and extract the intent and slots in JSON format.
         
