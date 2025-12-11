@@ -32,6 +32,7 @@ class NLPService:
         - If the user provides new values (e.g. new date, new attendees), OVERWRITE the old ones.
         - If the user only specifies a change (e.g. "nous sommes 5"), KEEP the other slots from context (e.g. start_time).
         - If the intent was BOOK_INTENT and user just updates info, keep BOOK_INTENT.
+        - CRITICAL: If the intent CHANGES (e.g. from BOOK_INTENT to CANCEL_INTENT), DO NOT use the old slots (like start_time) unless the user explicitly refers to them (e.g. "annule ça"). Start fresh for the new intent.
         
         Intents: 
         - BOOK_INTENT: user wants to book a room.
@@ -43,9 +44,10 @@ class NLPService:
         Rules for Slots:
         - attendees: integer. If implicit (e.g. "meeting", "we"), assume 2. If explicit "me", "alone", 1. Default 1.
         - start_time: ISO 8601 format (YYYY-MM-DDTHH:MM:ss). Calculate relative dates (tomorrow, next monday) based on Current Date.
-        - duration_minutes: integer. "fast meeting" or "meeting rapide" = 30. "one hour" = 60. Default 60.
+        - duration_minutes: integer. Return NULL if not specified. Do NOT assume 60.
         - end_time: Calculate based on start_time + duration if not specified.
-        - scope: for CANCEL_INTENT only. 'ALL' if user says "all", "toutes", "tout". 'SINGLE' default.
+        - scope: for CANCEL_INTENT. Values: 'ALL' (if "all", "toutes"), 'LAST' (if "last", "dernière", "latest"), 'SINGLE' (default).
+        - equipment: list of strings. Extract requested equipment (e.g. ["projector", "whiteboard", "TV"]). Empty list if none.
         
         Return ONLY valid JSON.
         Example JSON:
@@ -54,7 +56,8 @@ class NLPService:
             "slots": {{
                 "attendees": 5,
                 "start_time": "2023-10-27T14:00:00",
-                "duration_minutes": 60 
+                "duration_minutes": 30,
+                "equipment": ["TV"]
             }}
         }}
         """

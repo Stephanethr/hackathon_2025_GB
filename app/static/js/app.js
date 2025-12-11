@@ -197,6 +197,7 @@ async function confirmBooking(payload) {
     if (res.ok) {
         addMessage(`✅ Réservation confirmée ! ID: ${data.id}`, 'bot');
         loadBookings();
+        fetch(`${API_BASE}/chat/context`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
     } else {
         addMessage(`❌ Erreur: ${data.error}`, 'bot');
     }
@@ -212,6 +213,7 @@ async function confirmCancellation(payload) {
     if (res.ok) {
         addMessage(`✅ Réservation annulée.`, 'bot');
         loadBookings();
+        fetch(`${API_BASE}/chat/context`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
     } else {
         addMessage(`❌ Erreur: ${data.error}`, 'bot');
     }
@@ -227,6 +229,7 @@ async function confirmCancellationAll() {
     if (res.ok) {
         addMessage(`✅ ${data.message}`, 'bot');
         loadBookings();
+        fetch(`${API_BASE}/chat/context`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
     } else {
         addMessage(`❌ Erreur: ${data.error}`, 'bot');
     }
