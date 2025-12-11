@@ -18,7 +18,7 @@ def chat(current_user):
     # Retrieve previous context
     user_context = CHAT_CONTEXT.get(current_user.id)
     
-    # New NLP Service call (GEMINI) with context
+    # New NLP Service call (ChatGPT) with context
     intent, slots = NLPService.parse_intent(message, history=user_context)
     
     # Update Context if intent is valid (not UNKNOWN/API_ERROR)

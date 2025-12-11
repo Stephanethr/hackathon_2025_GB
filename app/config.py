@@ -7,7 +7,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-prod'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///workspace_smart.db'
-    GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
+    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
     
     # Business Rules Defaults
     SINGLE_USER_CAPACITY_THRESHOLD = 6

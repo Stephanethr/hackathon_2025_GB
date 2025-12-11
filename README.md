@@ -12,7 +12,7 @@ Application de gestion d'espace de travail intelligente (NLP + Booking Engine).
 3.  **Configuration**:
     Créer un fichier `.env` à la racine contenant :
     ```env
-    GOOGLE_API_KEY=votre_cle_api_gemini
+    OPENAI_API_KEY=votre_cle_api_openai
     SECRET_KEY=votre_secret_key_securise
     DATABASE_URL=sqlite:///workspace_smart.db
     ```
@@ -41,7 +41,7 @@ pytest
 ## Architecture & DevOps
 
 ### Structure
-- `app/services`: Logique métier (NLP via Gemini, Booking System).
+- `app/services`: Logique métier (NLP via ChatGPT, Booking System).
 - `app/api/routes`: Endpoints API (Auth, Chat, Bookings).
 - `app/models`: Schémas de base de données.
 - `app/utils`: Fonctions utilitaires et décorateurs.
