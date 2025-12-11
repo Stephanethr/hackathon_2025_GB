@@ -92,16 +92,14 @@ function switchTab(tabName) {
     document.getElementById(`view-${tabName}`).classList.add('active');
 
     // Activate nav item
+    // Activate nav item
     const navItems = document.querySelectorAll('.nav-item');
     if (tabName === 'dashboard') navItems[0].classList.add('active');
-    if (tabName === 'chat') navItems[1].classList.add('active');
     if (tabName === 'calendar') {
-        // Assuming calendar is the 3rd item as strictly ordered in HTML
-        // dashboard(0), chat(1), calendar(2), logout(3), admin(4)
-        // Wait, let's look at HTML structure: 
-        // 0: dashboard, 1: chat, 2: calendar, 3: logout, 4: admin
-        navItems[2].classList.add('active'); 
+        // dashboard(0), calendar(1), admin(2) (hidden by default)
+        navItems[1].classList.add('active');
         loadCalendarEvents();
+        loadBookings(); // Also load bookings for the combined view
     }
     if (tabName === 'admin') {
         document.getElementById('nav-admin').classList.add('active');
@@ -112,11 +110,14 @@ function switchTab(tabName) {
 }
 
 function setInputAndSwitch(text) {
-    switchTab('chat');
+    switchTab('dashboard'); // Switch to home/chat now
     // small delay to let view render
     setTimeout(() => {
-        document.getElementById('chat-input').value = text;
-        document.getElementById('chat-input').focus();
+        const input = document.getElementById('chat-input');
+        if (input) {
+            input.value = text;
+            input.focus();
+        }
     }, 100);
 }
 
@@ -255,7 +256,7 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                 finalTranscript += event.results[i][0].transcript;
             }
         }
-        
+
         let interimTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
             interimTranscript += event.results[i][0].transcript;
@@ -732,11 +733,11 @@ async function loadCalendarEvents() {
         });
         const events = await res.json();
         list.innerHTML = '';
-        
+
         if (!Array.isArray(events)) {
-             // Maybe error message
-             list.innerHTML = `<li style="padding:1rem;">Erreur de chargement.</li>`;
-             return;
+            // Maybe error message
+            list.innerHTML = `<li style="padding:1rem;">Erreur de chargement.</li>`;
+            return;
         }
 
         if (events.length === 0) {
@@ -756,7 +757,7 @@ async function loadCalendarEvents() {
         events.forEach(e => {
             const start = new Date(e.start);
             const end = new Date(e.end);
-            
+
             // Date header
             const dayStr = start.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
             if (dayStr !== currentDayLabel) {
@@ -766,7 +767,7 @@ async function loadCalendarEvents() {
 
             const startTime = start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
             const endTime = end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-            
+
             const needsRoomBadge = e.needs_room ? '<span class="badge warning" style="font-size:0.7rem; margin-left:auto;">Sans salle</span>' : '';
             const locationStr = e.location ? `<span style="font-size:0.8rem; color:#64748b;"><i data-lucide="map-pin" class="icon-xs"></i> ${e.location}</span>` : '';
 
@@ -796,7 +797,7 @@ async function loadCalendarEvents() {
 async function openProfileModal() {
     const modal = document.getElementById('profile-modal');
     modal.classList.add('active');
-    
+
     // Load current settings
     try {
         const res = await fetch(`${API_BASE}/calendar/settings`, {
@@ -806,7 +807,7 @@ async function openProfileModal() {
             const data = await res.json();
             document.getElementById('profile-ics-url').value = data.ics_url || '';
         }
-    } catch(e) {
+    } catch (e) {
         console.error("Error loading settings");
     }
 }
@@ -818,17 +819,17 @@ function closeProfileModal() {
 async function handleProfileSubmit(e) {
     e.preventDefault();
     const url = document.getElementById('profile-ics-url').value;
-    
+
     try {
         const res = await fetch(`${API_BASE}/calendar/settings`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` 
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({ ics_url: url })
         });
-        
+
         if (res.ok) {
             closeProfileModal();
             // detailed success message or reload logic?
@@ -839,7 +840,25 @@ async function handleProfileSubmit(e) {
         } else {
             alert("Erreur lors de l'enregistrement");
         }
-    } catch(err) {
+    } catch (err) {
         alert("Erreur réseau");
     }
 }
+
+// --- USER MENU LOGIC ---
+function toggleUserMenu() {
+    const dropdown = document.getElementById('user-dropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('active');
+        lucide.createIcons();
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const container = document.querySelector('.user-menu-container');
+    const dropdown = document.getElementById('user-dropdown');
+    if (container && !container.contains(e.target) && dropdown && dropdown.classList.contains('active')) {
+        dropdown.classList.remove('active');
+    }
+});

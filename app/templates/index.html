@@ -37,57 +37,27 @@
         <header class="app-header">
             <div class="app-logo">
                 <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="logo" class="icon-sm"
-                    style="height: 1.2rem; width: 1.2rem;">
+                    style="height: 2.5rem; width: 2.5rem;">
                 <p>GB<span style="color: #fe6c75;">oo</span>k</p>
             </div>
-            <div class="user-avatar-sm" id="user-avatar-sm">
-                AD
+            <div class="user-menu-container">
+                <div class="user-avatar-sm" id="user-avatar-sm" onclick="toggleUserMenu()">
+                    AD
+                </div>
+                <div class="user-dropdown" id="user-dropdown">
+                    <div class="dropdown-item" onclick="logout()">
+                        <i data-lucide="log-out"></i>
+                        <span>Sortir</span>
+                    </div>
+                </div>
             </div>
         </header>
 
         <!-- Main Content -->
         <main class="main-content">
 
-            <!-- VIEW: DASHBOARD (Home) -->
-            <section id="view-dashboard" class="view-section active">
-                <div class="section-title">
-                    <i data-lucide="zap" class="icon-sm" style="color: var(--accent);"></i>
-                    Actions Rapides
-                </div>
-
-                <div class="quick-actions-grid">
-                    <div class="action-btn"
-                        onclick="setInputAndSwitch('Réserver une salle pour 2 personnes maintenant')">
-                        <i data-lucide="clock"></i>
-                        <span>Meeting 2p</span>
-                    </div>
-                    <div class="action-btn" onclick="setInputAndSwitch('Disponibilités aujourd\'hui')">
-                        <i data-lucide="calendar"></i>
-                        <span>Dispos</span>
-                    </div>
-                    <div class="action-btn" onclick="setInputAndSwitch('Salle avec projecteur')">
-                        <i data-lucide="presentation"></i>
-                        <span>Projecteur</span>
-                    </div>
-                    <div class="action-btn" onclick="setInputAndSwitch('Annuler ma dernière réservation')">
-                        <i data-lucide="x-circle" style="color: #ef4444;"></i>
-                        <span>Annuler</span>
-                    </div>
-                </div>
-
-                <div class="section-title" style="margin-top: 2rem;">
-                    <i data-lucide="list" class="icon-sm"></i>
-                    Mes Réservations
-                </div>
-                <div id="bookings-list-container">
-                    <ul id="bookings-ul" style="list-style: none; padding: 0;">
-                        <!-- JS Loaded -->
-                    </ul>
-                </div>
-            </section>
-
-            <!-- VIEW: CHAT -->
-            <section id="view-chat" class="view-section chat-view">
+            <!-- VIEW: DASHBOARD (Home - Chat) -->
+            <section id="view-dashboard" class="view-section chat-view active">
                 <div class="chat-container">
                     <div id="chat-history" class="chat-messages">
                         <div class="message bot">
@@ -102,6 +72,8 @@
                     </div>
                 </div>
             </section>
+
+
 
             <!-- VIEW: ADMIN -->
             <section id="view-admin" class="view-section admin-view">
@@ -159,8 +131,18 @@
                 </div>
             </section>
 
-            <!-- VIEW: CALENDAR -->
+            <!-- VIEW: CALENDAR (Planning) -->
             <section id="view-calendar" class="view-section calendar-view">
+                <div class="section-title">
+                    <i data-lucide="list" class="icon-sm"></i>
+                    Mes Réservations
+                </div>
+                <div id="bookings-list-container" style="margin-bottom: 2rem;">
+                    <ul id="bookings-ul" style="list-style: none; padding: 0;">
+                        <!-- JS Loaded -->
+                    </ul>
+                </div>
+
                 <div class="section-title">
                     <i data-lucide="calendar"></i>
                     Mon Agenda
@@ -184,18 +166,11 @@
                 <i data-lucide="home"></i>
                 <span>Accueil</span>
             </div>
-            <div class="nav-item" onclick="switchTab('chat')">
-                <i data-lucide="message-square"></i>
-                <span>Assistant</span>
-            </div>
             <div class="nav-item" onclick="switchTab('calendar')">
                 <i data-lucide="calendar"></i>
-                <span>Agenda</span>
+                <span>Planning</span>
             </div>
-            <div class="nav-item" onclick="logout()">
-                <i data-lucide="log-out"></i>
-                <span>Sortir</span>
-            </div>
+
             <div class="nav-item" id="nav-admin" style="display:none;" onclick="switchTab('admin')">
                 <i data-lucide="shield"></i>
                 <span>Admin</span>
