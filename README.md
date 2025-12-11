@@ -1,4 +1,4 @@
-# WorkspaceSmart
+# Gbook
 
 Application de gestion d'espace de travail intelligente (NLP + Booking Engine).
 
@@ -14,7 +14,7 @@ Application de gestion d'espace de travail intelligente (NLP + Booking Engine).
     ```env
     OPENAI_API_KEY=votre_cle_api_openai
     SECRET_KEY=votre_secret_key_securise
-    DATABASE_URL=sqlite:///workspace_smart.db
+    DATABASE_URL=sqlite:///gbook.db
     ```
 
 4.  **Initialisation de la Base de Données**:

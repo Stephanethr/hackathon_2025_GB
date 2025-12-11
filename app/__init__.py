@@ -28,6 +28,6 @@ def create_app(config_class=DevelopmentConfig):
     app.register_blueprint(calendar_bp, url_prefix='/api/calendar')
 
     def health():
-        return {"status": "ok", "app": "WorkspaceSmart"}
+        return {"status": "ok", "app": "GBook"}
 
     return app

@@ -109,7 +109,7 @@ class NLPService:
         client = NLPService.get_client()
         
         system_prompt = """
-        You are WorkspaceSmart, a helpful and professional office assistant.
+        You are GBook, a helpful and professional office assistant.
         Task: Write a natural response in French based on the Situation.
         
         Guidelines:

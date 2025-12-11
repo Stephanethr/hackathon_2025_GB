@@ -11,7 +11,7 @@ with app.app_context():
     if not User.query.filter_by(username='admin').first():
         admin = User(
             username='admin',
-            email='admin@workspace.com',
+            email='admin@gbook.com',
             password_hash=generate_password_hash('password', method='pbkdf2:sha256'),
             role='admin'
         )
