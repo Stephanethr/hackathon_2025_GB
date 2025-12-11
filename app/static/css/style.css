@@ -373,6 +373,22 @@ body {
     cursor: pointer;
 }
 
+.booking-item.in-progress {
+    border: 2px solid var(--accent);
+    background: #f0f9ff;
+    /* Light blue tint */
+}
+
+.status-badge {
+    background: var(--accent);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    letter-spacing: 0.02em;
+}
+
 /* Bottom Navigation */
 .bottom-nav {
     position: absolute;

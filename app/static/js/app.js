@@ -596,13 +596,42 @@ async function loadBookings() {
             return;
         }
         bookings.forEach(b => {
-            const start = new Date(b.start_time).toLocaleString('fr-FR', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+            const start = new Date(b.start_time);
+            const end = new Date(b.end_time);
+            const now = new Date();
+
+            // Format start time
+            const startStr = start.toLocaleString('fr-FR', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+
+            // Calculate duration
+            const diffMs = end - start;
+            const diffMins = Math.round(diffMs / 60000);
+            let durationStr = '';
+            if (diffMins >= 60) {
+                const h = Math.floor(diffMins / 60);
+                const m = diffMins % 60;
+                durationStr = `${h}h ${m > 0 ? m + 'm' : ''}`;
+            } else {
+                durationStr = `${diffMins} min`;
+            }
+
+            // Check in-progress
+            const isInProgress = now >= start && now <= end;
+            const activeClass = isInProgress ? 'in-progress' : '';
+            const statusLabel = isInProgress ? '<span class="status-badge">En cours</span>' : '';
+
             const li = document.createElement('li');
-            li.className = 'booking-item'; // New class
+            li.className = `booking-item ${activeClass}`;
             li.innerHTML = `
                 <div class="booking-details">
-                    <span class="booking-time">${start}</span>
-                    <span class="booking-meta"><i data-lucide="map-pin" class="icon-xs"></i> ${b.room_name} (${b.attendees_count}p)</span>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span class="booking-time">${startStr}</span>
+                        ${statusLabel}
+                    </div>
+                    <span class="booking-meta">
+                        <i data-lucide="map-pin" class="icon-xs"></i> ${b.room_name} 
+                        &nbsp;&bull;&nbsp; <i data-lucide="clock" class="icon-xs"></i> ${durationStr}
+                    </span>
                 </div>
                 <button class="btn-delete" onclick="deleteBookingFromList(${b.id})"><i data-lucide="trash-2"></i></button>
             `;
