@@ -30,11 +30,15 @@ def chat(current_user):
     
     if intent == 'BOOK_INTENT':
         start_time_str = slots.get('start_time')
-        duration = slots.get('duration_minutes', 60)
+        duration = slots.get('duration_minutes')
         attendees = slots.get('attendees', 1)
+        equipment = slots.get('equipment', [])
         
         if not start_time_str:
-            return jsonify({"response": NLPService.generate_natural_response("Missing date/time in user booking request.")})
+            return jsonify({"response": NLPService.generate_natural_response("Asking for date and time of the booking.")})
+
+        if not duration:
+            return jsonify({"response": NLPService.generate_natural_response("Asking for duration of the meeting.")})
             
         try:
             start_time = datetime.fromisoformat(start_time_str)
@@ -43,17 +47,26 @@ def chat(current_user):
              return jsonify({"response": NLPService.generate_natural_response("Invalid date format.")})
 
         # Booking Logic
-        rooms = BookingService.find_potential_rooms(start_time, end_time, attendees)
+        rooms = BookingService.find_potential_rooms(start_time, end_time, attendees, required_equipment=equipment)
         
         if not rooms:
-            ctx = f"No room available for {attendees} people on {start_time.strftime('%d/%m at %H:%M')}."
+            if equipment:
+                 ctx = f"No room available for {attendees} people on {start_time.strftime('%d/%m at %H:%M')} with equipment {equipment}."
+            else:
+                 ctx = f"No room available for {attendees} people on {start_time.strftime('%d/%m at %H:%M')}."
             return jsonify({
                 "response": NLPService.generate_natural_response(ctx)
             })
             
         best_room = rooms[0]
         
-        ctx = f"Found room {best_room.name} (cap {best_room.capacity}) for {start_time.strftime('%d/%m at %H:%M')}. Ask user to confirm."
+        # Format equipment string
+        eq_str = ""
+        if best_room.equipment:
+            eq_list = ", ".join(best_room.equipment)
+            eq_str = f" (Equipement: {eq_list})"
+        
+        ctx = f"Found room {best_room.name} (cap {best_room.capacity}){eq_str} for {start_time.strftime('%d/%m at %H:%M')}. Ask user to confirm."
         ai_text = NLPService.generate_natural_response(ctx)
         
         return jsonify({
@@ -110,6 +123,21 @@ def chat(current_user):
                 "payload": {}
             })
         
+        if scope == 'LAST':
+             last_booking = BookingService.get_last_created_booking(current_user.id)
+             if not last_booking:
+                 return jsonify({"response": NLPService.generate_natural_response("You have no bookings to cancel.")})
+             
+             start_fmt = last_booking.start_time.strftime('%d/%m à %H:%M')
+             ctx = f"Found the last booking: Room {last_booking.room_id} on {start_fmt}. Ask user to confirm cancellation."
+             ai_text = NLPService.generate_natural_response(ctx)
+             
+             return jsonify({
+                 "response": ai_text,
+                 "action_required": "confirm_cancel",
+                 "payload": { "booking_id": last_booking.id }
+             })
+        
         # Filter if date provided
         candidates = bookings
         if start_time_str:
@@ -160,3 +188,10 @@ def chat(current_user):
         # Ask AI to generate a polite "I didn't understand" message
         ai_text = NLPService.generate_natural_response("User said something I didn't understand. Ask them to rephrase request (booking or cancellation).")
         return jsonify({"response": ai_text})
+
+@chat_bp.route('/context', methods=['DELETE'])
+@token_required
+def clear_context(current_user):
+    if current_user.id in CHAT_CONTEXT:
+        del CHAT_CONTEXT[current_user.id]
+    return jsonify({"message": "Context cleared"}), 200

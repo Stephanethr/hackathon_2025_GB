@@ -35,11 +35,31 @@ class BookingService:
         return conflict is None
 
     @staticmethod
-    def find_potential_rooms(start_time, end_time, attendees: int):
+    def find_potential_rooms(start_time, end_time, attendees: int, required_equipment: list = None):
         """Find all rooms that are free and fit the attendees."""
         # 1. Filter by capacity
         capable_rooms = Room.query.filter(Room.capacity >= attendees, Room.is_active == True).all()
         
+        # 2. Filter by Equipment (if requested)
+        if required_equipment:
+            filtered_rooms = []
+            for room in capable_rooms:
+                # Room equipment is stored as JSON list e.g. ["TV", "Projector"]
+                # We need to check if ALL required items are in the room's equipment list.
+                # Case insensitive check
+                if not room.equipment:
+                    continue
+                    
+                room_eq_lower = [e.lower() for e in room.equipment]
+                has_all = True
+                for req in required_equipment:
+                    if req.lower() not in room_eq_lower:
+                        has_all = False
+                        break
+                if has_all:
+                    filtered_rooms.append(room)
+            capable_rooms = filtered_rooms
+
         available_rooms = []
         for room in capable_rooms:
             if BookingService.check_availability(room.id, start_time, end_time):
@@ -233,3 +253,12 @@ class BookingService:
             
         db.session.commit()
         return True, f"{count} réservations annulées."
+
+    @staticmethod
+    def get_last_created_booking(user_id):
+        """Get the most recently created confirmed booking for a user."""
+        return Booking.query.filter(
+            Booking.user_id == user_id,
+            Booking.status == 'confirmed',
+            Booking.end_time > datetime.now()
+        ).order_by(Booking.created_at.desc()).first()
