@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     userRole = data.role;
                     localStorage.setItem('ws_token', token);
                     localStorage.setItem('ws_role', userRole);
+                    localStorage.setItem('ws_username', data.username);
                     // document.getElementById('user-display').textContent = data.username; // Removed in mobile
                     document.getElementById('auth-overlay').style.display = 'none';
                     showApp();
@@ -65,11 +66,19 @@ function showApp() {
 
     lucide.createIcons();
     loadBookings();
+
+    // Set Username
+    const username = localStorage.getItem('ws_username') || 'Invité';
+    const avatarEl = document.getElementById('user-avatar-sm');
+    if (avatarEl) {
+        avatarEl.textContent = username;
+    }
 }
 
 function logout() {
     localStorage.removeItem('ws_token');
     localStorage.removeItem('ws_role'); // Clear role
+    localStorage.removeItem('ws_username');
     location.reload();
 }
 
