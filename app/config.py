@@ -6,7 +6,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-prod'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///workspace_smart.db'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///gbook.db'
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
     
     # Business Rules Defaults
