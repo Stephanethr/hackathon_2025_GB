@@ -1,6 +1,6 @@
 from flask import Flask
 from app.config import DevelopmentConfig
-from app.extensions import db, migrate
+from app.extensions import db
 
 def create_app(config_class=DevelopmentConfig):
     app = Flask(__name__)
@@ -8,7 +8,6 @@ def create_app(config_class=DevelopmentConfig):
 
     # Initialize extensions
     db.init_app(app)
-    migrate.init_app(app, db)
 
     
     # Register Blueprints
@@ -24,6 +23,9 @@ def create_app(config_class=DevelopmentConfig):
     
     from app.api.routes.admin import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
+
+    from app.api.routes.calendar import calendar_bp
+    app.register_blueprint(calendar_bp, url_prefix='/api/calendar')
 
     def health():
         return {"status": "ok", "app": "WorkspaceSmart"}
