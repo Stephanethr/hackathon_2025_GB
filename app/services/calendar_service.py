@@ -2,13 +2,15 @@ import requests
 from icalendar import Calendar
 from datetime import datetime, timedelta
 import pytz
+from app.extensions import db
+from app.models.event import Event
 
 class CalendarService:
     @staticmethod
-    def fetch_user_events(user):
+    def sync_user_events(user):
         """
-        Fetches and parses events from the user's ICS URL.
-        Returns a list of event dictionaries.
+        Fetches events from the user's ICS URL and updates the database.
+        Returns the list of stored/updated Event objects (optional).
         """
         if not user.ics_url:
             return []
@@ -76,19 +78,100 @@ class CalendarService:
                             attendee_count = 1
 
                         
-                    events.append({
-                        'summary': summary,
-                        'start': start_dt.isoformat(),
-                        'end': end_dt.isoformat(),
-                        'location': location,
-                        'needs_room': needs_room,
-                        'attendee_count': attendee_count
-                    })
-            
-            # Sort by start time
-            events.sort(key=lambda x: x['start'])
-            return events
+                    existing_event = Event.query.filter_by(uid=str(component.get('uid')), user_id=user.id).first()
+                    
+                    if existing_event:
+                         existing_event.summary = summary
+                         existing_event.start_time = start_dt
+                         existing_event.end_time = end_dt
+                         existing_event.location = location
+                         existing_event.attendee_count = attendee_count
+                         existing_event.updated_at = datetime.utcnow()
+                    else:
+                        new_event = Event(
+                            uid=str(component.get('uid')),
+                            summary=summary,
+                            start_time=start_dt,
+                            end_time=end_dt,
+                            location=location,
+                            attendee_count=attendee_count,
+                            user_id=user.id
+                        )
+                        db.session.add(new_event)
+                        
+            db.session.commit()
+            return True
 
         except Exception as e:
             print(f"Error fetching ICS: {e}")
-            return []
+            return False
+
+    @staticmethod
+    def get_stored_events(user):
+        """
+        Retrieves events from the database for the given user.
+        Returns a list of event dictionaries formatted for the frontend.
+        """
+        # Get current time for determining needs_room logic if needed, 
+        # or just return all future events?
+        # The previous logic filtered "end_dt < now". 
+        # We can do that in DB query or in python.
+        
+        now = datetime.now(pytz.utc)
+        
+        # Query events
+        # We might want to filter by start time or end time?
+        # Logic was: "if end_dt < now: continue"
+        # So we want events where end_time >= now
+        
+        events = Event.query.filter(Event.user_id == user.id, Event.end_time >= now).order_by(Event.start_time).all()
+        
+        results = []
+        for event in events:
+            # Replicate 'needs_room' logic
+            needs_room = False
+            location = event.location
+            
+            if event.booking:
+                 location = event.booking.room.name if event.booking.room else f"Room {event.booking.room_id}"
+                 needs_room = False
+            elif not location or location.strip() == "":
+                needs_room = True
+                
+            results.append({
+                'summary': event.summary,
+                'start': event.start_time.isoformat(),
+                'end': event.end_time.isoformat(),
+                'location': location,
+                'needs_room': needs_room,
+                'attendee_count': event.attendee_count
+            })
+            
+        return results
+
+
+    @staticmethod
+    def get_next_unbooked_event(user):
+        """
+        Finds the next upcoming event for the user that does not have a linked booking.
+        """
+        now = datetime.now(pytz.utc)
+        return Event.query.filter(
+            Event.user_id == user.id,
+            Event.start_time > now,
+            Event.booking_id == None
+        ).order_by(Event.start_time).first()
+
+    @staticmethod
+    def link_event_to_booking(event_id, booking_id):
+        """
+        Links a calendar event to a booking.
+        """
+        event = Event.query.get(event_id)
+        if event:
+            event.booking_id = booking_id
+            db.session.commit()
+            return True
+        return False
+
+

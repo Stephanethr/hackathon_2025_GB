@@ -13,6 +13,7 @@ class User(db.Model):
     
     # Relationships
     bookings = db.relationship('Booking', backref='owner', lazy='dynamic')
+    events = db.relationship('Event', backref='owner', lazy='dynamic')
 
     def to_dict(self):
         return {

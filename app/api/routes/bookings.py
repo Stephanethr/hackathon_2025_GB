@@ -22,6 +22,11 @@ def create_booking(current_user):
             title=data.get('title', 'Meeting'),
             attendees=data.get('attendees', 1)
         )
+        
+        if 'event_id' in data:
+            from app.services.calendar_service import CalendarService
+            CalendarService.link_event_to_booking(data['event_id'], booking.id)
+            
         return jsonify(booking.to_dict()), 201
     except ValueError as e:
         return jsonify({'error': str(e)}), 400

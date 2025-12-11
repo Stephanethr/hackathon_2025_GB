@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, Response, stream_with_context
 from app.services.nlp_service import NLPService
 from app.services.booking_service import BookingService
+from app.services.calendar_service import CalendarService
 from app.utils.decorators import token_required
 from datetime import datetime, timedelta
 import json
@@ -70,6 +71,39 @@ def chat(current_user):
             missing_fields.append("la durée")
 
         if missing_fields:
+            # Check for unbooked event
+            next_event = CalendarService.get_next_unbooked_event(current_user)
+            if next_event:
+                 # Determine effective attendees
+                 # If user provided attendees (in slots), use it caused it valid. Otherwise use event default.
+                 effective_attendees = slots.get('attendees') or next_event.attendee_count
+                 if not effective_attendees: effective_attendees = 1
+
+                 # Proactive Proposal
+                 candidates = BookingService.find_potential_rooms(next_event.start_time, next_event.end_time, effective_attendees)
+                 if candidates:
+                     room = candidates[0]
+                     msg = f"Je vois que vous avez un événement '{next_event.summary}' le {next_event.start_time.strftime('%d/%m à %H:%M')}."
+                     if slots.get('attendees'):
+                         msg += f" Pour {effective_attendees} personnes (selon votre demande)."
+                     else:
+                         msg += f" ({effective_attendees} pers. prévues)."
+                     
+                     msg += f" La salle **{room.name}** est disponible. Voulez-vous la réserver ?"
+                     
+                     payload = {
+                        "action_required": "confirm_booking",
+                        "payload": {
+                            "room_id": room.id,
+                            "start_time": next_event.start_time.isoformat(),
+                            "end_time": next_event.end_time.isoformat(),
+                            "attendees": effective_attendees,
+                            "title": next_event.summary,
+                            "event_id": next_event.id
+                        }
+                     }
+                     return respond(msg, payload)
+
             if len(missing_fields) == 1:
                 return respond(f"User wants to book but didn't specify {missing_fields[0]}. Ask for it.")
             else:

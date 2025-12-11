@@ -26,7 +26,8 @@ def get_events():
     if not user:
         return jsonify({'message': 'Unauthorized'}), 401
         
-    events = CalendarService.fetch_user_events(user)
+    CalendarService.sync_user_events(user)
+    events = CalendarService.get_stored_events(user)
     return jsonify(events)
 
 @calendar_bp.route('/settings', methods=['POST'])

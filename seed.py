@@ -1,5 +1,5 @@
 from app import create_app, db
-from app.models import User, Room
+from app.models import User, Room, Event
 from werkzeug.security import generate_password_hash
 
 app = create_app()
