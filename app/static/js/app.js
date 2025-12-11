@@ -220,7 +220,7 @@ const micBtn = document.getElementById('mic-btn');
 let recognition;
 let isRecording = false;
 let silenceTimer;
-const SILENCE_DELAY = 2000; // 2 seconds
+const SILENCE_DELAY = 1000; // 1 second
 
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -653,13 +653,22 @@ async function loadBookings() {
             ul.innerHTML = '<li style="padding:1rem; text-align:center; color:#94a3b8;">Aucune réservation.</li>';
             return;
         }
+        let currentDayLabel = '';
         bookings.forEach(b => {
             const start = new Date(b.start_time);
             const end = new Date(b.end_time);
             const now = new Date();
 
+
             // Format start time
-            const startStr = start.toLocaleString('fr-FR', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+            // Date header
+            const dayStr = start.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+            if (dayStr !== currentDayLabel) {
+                ul.innerHTML += `<li class="date-header">${dayStr}</li>`;
+                currentDayLabel = dayStr;
+            }
+
+            const startStr = start.toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
             // Calculate duration
             const diffMs = end - start;
@@ -687,8 +696,13 @@ async function loadBookings() {
                         ${statusLabel}
                     </div>
                     <span class="booking-meta">
-                        <i data-lucide="map-pin" class="icon-xs"></i> ${b.room_name} 
-                        &nbsp;&bull;&nbsp; <i data-lucide="clock" class="icon-xs"></i> ${durationStr}
+                        <span class="meta-row" style="display:inline-flex;">
+                            <i data-lucide="map-pin" class="icon-xs"></i> <span>${b.room_name}</span>
+                        </span>
+                        <span style="margin:0 0.3rem;">&bull;</span> 
+                        <span class="meta-row" style="display:inline-flex;">
+                            <i data-lucide="clock" class="icon-xs"></i> <span>${durationStr}</span>
+                        </span>
                     </span>
                 </div>
                 <button class="btn-delete" onclick="deleteBookingFromList(${b.id})"><i data-lucide="trash-2"></i></button>
@@ -768,22 +782,20 @@ async function loadCalendarEvents() {
             const startTime = start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
             const endTime = end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
-            const needsRoomBadge = e.needs_room ? '<span class="badge warning" style="font-size:0.7rem; margin-left:auto;">Sans salle</span>' : '';
-            const locationStr = e.location ? `<span><i data-lucide="map-pin" class="icon-xs"></i> ${e.location}</span>` : '';
-            const attendeesStr = e.attendee_count > 0 ? `<span><i data-lucide="users" class="icon-xs"></i> ${e.attendee_count}</span>` : '';
-
-            const metaInfo = [locationStr, attendeesStr].filter(s => s !== '').join('&nbsp;&nbsp;&bull;&nbsp;&nbsp;');
-            const metaHtml = metaInfo ? `<div style="font-size:0.8rem; color:#64748b; display:flex; align-items:center;">${metaInfo}</div>` : '';
+            const needsRoomBadge = e.needs_room ? '<div class="meta-row"><i data-lucide="map-off" class="icon-xs"></i> <span>Sans salle</span></div>' : '';
+            const locationStr = e.location ? `<div class="meta-row"><i data-lucide="map-pin" class="icon-xs"></i> <span>${e.location}</span></div>` : '';
+            const attendeesStr = e.attendee_count > 0 ? `<div class="meta-row"><i data-lucide="users" class="icon-xs"></i> <span>${e.attendee_count}</span></div>` : '';
 
             list.innerHTML += `
-                <li class="booking-item" style="cursor:default;">
-                    <div style="flex:1;">
-                        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem;">
-                            <span style="font-weight:600; color:var(--text-primary);">${startTime} - ${endTime}</span>
-                            ${needsRoomBadge}
-                        </div>
-                        <div style="font-weight:500;">${e.summary}</div>
-                        ${metaHtml}
+                <li class="booking-item" style="cursor:default; display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div style="display:flex; flex-direction:column; gap:0.2rem;">
+                         <div style="font-weight:700; font-size:1.05rem; color:var(--dark);">${startTime} - ${endTime}</div>
+                         <div style="font-weight:500; color:var(--text-main);">${e.summary}</div>
+                    </div>
+                    
+                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.3rem; min-width:80px;">
+                        ${e.location ? locationStr : (needsRoomBadge ? needsRoomBadge : '')}
+                        ${attendeesStr}
                     </div>
                 </li>
             `;

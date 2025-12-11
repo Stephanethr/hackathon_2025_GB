@@ -155,7 +155,7 @@ body {
     margin-top: 0.5rem;
     background: white;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     padding: 0.5rem;
     width: 160px;
     display: none;
@@ -744,4 +744,72 @@ body {
 .animate-spin {
     animation: spin 1s linear infinite;
     display: inline-block;
+}
+
+/* Agenda View Enhancements */
+.date-header {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    padding-left: 0.5rem;
+    border-left: 3px solid var(--primary);
+    line-height: 1.2;
+}
+
+.calendar-view #calendar-events-container {
+    padding-bottom: 100px;
+}
+
+.booking-item {
+    margin-bottom: 1rem;
+    padding: 1.2rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.booking-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Icon Utilities */
+.icon-xs {
+    width: 12px;
+    height: 12px;
+}
+
+.icon-sm {
+    width: 16px;
+    height: 16px;
+}
+
+.meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1;
+    /* Helps centering */
+}
+
+.btn-icon-sm {
+    width: 32px;
+    height: 32px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon-sm:hover {
+    background: #f8fafc;
+    color: var(--primary);
+    border-color: var(--primary);
 }

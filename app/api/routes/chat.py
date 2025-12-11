@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import json
 from app.models import Booking, Room
 from app.config import Config
+import unicodedata
 
 chat_bp = Blueprint('chat', __name__)
 
@@ -60,6 +61,7 @@ def chat(current_user):
         attendees = slots.get('attendees') # Can be None now
         equipment = slots.get('equipment', [])
         room_name = slots.get('room_name')
+        excluded_rooms = slots.get('excluded_rooms', [])
         
         # 1. Check Mandatory Slots
         missing_fields = []
@@ -132,7 +134,8 @@ def chat(current_user):
             end_time, 
             attendees, 
             required_equipment=equipment, 
-            preferred_room_name=room_name
+            preferred_room_name=room_name,
+            excluded_room_names=excluded_rooms
         )
         
         if not rooms:
@@ -234,6 +237,33 @@ def chat(current_user):
                 ctx += f"- {item['room_name']} ({item['capacity']}p): {slots_text}\n"
 
         return respond(ctx)
+
+    elif intent == 'ROOM_INFO':
+        room_name = slots.get('room_name')
+        
+        if room_name:
+            # Search for specific room with normalization
+            all_rooms = Room.query.all()
+            
+            def normalize(t):
+                 return ''.join(c for c in unicodedata.normalize('NFD', t) if unicodedata.category(c) != 'Mn').lower()
+            
+            target_room = next((r for r in all_rooms if normalize(room_name) in normalize(r.name)), None)
+            
+            if target_room:
+                 eq_list = ", ".join(target_room.equipment) if target_room.equipment else "Aucun"
+                 return respond(f"La salle **{target_room.name}** a une capacité de {target_room.capacity} personnes. Équipements : {eq_list}.")
+            else:
+                 # Try to list close matches?
+                 return respond(f"Je ne trouve pas la salle '{room_name}'.")
+        else:
+            # List all rooms
+            rooms = Room.query.filter_by(is_active=True).all()
+            info = "Voici les salles disponibles :\n"
+            for r in rooms:
+                 eq_list = ", ".join(r.equipment) if r.equipment else "Standard"
+                 info += f"- **{r.name}** : {r.capacity} pers. ({eq_list})\n"
+            return respond(info)
 
     elif intent == 'GREETING':
         return respond("User says hello. Greeting checking capabilities (booking, availability).")

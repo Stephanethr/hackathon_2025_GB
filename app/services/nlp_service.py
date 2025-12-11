@@ -38,24 +38,28 @@ class NLPService:
         Analyze the conversation history and extract the intent and slots in JSON format.
         
         Intents: 
-        - BOOK_INTENT: user wants to book a room.
+        - BOOK_INTENT: user wants to book a room. AND ALSO if user REJECTS a proposed room during a booking flow (e.g. "non", "pas celle là", "j'ai pas besoin de la salle X" -> implies looking for ANOTHER room).
+        - ROOM_INFO: user asks for static information about a room (capacity, equipment, location) WITHOUT trying to book immediately (e.g. "combien de places dans la salle X?", "est-ce que la salle Y a un projecteur?", "liste des salles").
         - MODIFY_INTENT: user wants to change/modify an existing booking (e.g. "change l'heure", "finalement à 18h", "modifie ma réservation").
         - QUERY_AVAILABILITY: user asks for availability (e.g. "when is it free?", "dispo demain").
-        - CANCEL_INTENT: user wants to cancel/delete a booking (e.g. "annuler ma réservation", "supprimer").
+        - CANCEL_INTENT: user wants to cancel/delete a CONFIRMED booking. MUST contain explicit cancel words like "annuler", "supprimer", "delete". DO NOT use this if user is just saying "no" to a proposal.
         - GREETING: user says hello/hi/bonjour.
         - UNKNOWN: cannot understand.
         
         Rules for Slots:
-        - attendees: integer. Return NULL if not specified. Do NOT assume a default (e.g. do not assume 1 or 2).
+        - attendees: integer. Return NULL if not specified. If user says "several", "plusieurs", "team", "équipe" without number, estimate to 5.
         - start_time: ISO 8601 format (YYYY-MM-DDTHH:MM:ss). Calculate relative dates (tomorrow, next monday) based on Current Date.
         - duration_minutes: integer. Return NULL if not specified. Do NOT assume 60.
         - end_time: Calculate based on start_time + duration if not specified.
         - scope: for CANCEL_INTENT. Values: 'ALL' (if "all", "toutes"), 'LAST' (if "last", "dernière", "latest"), 'SINGLE' (default).
         - equipment: list of strings. Extract requested equipment (e.g. ["projector", "whiteboard", "TV"]). Empty list if none.
         - room_name: string. Identify if user requests a specific room (e.g. "Salle Alpha", "Room 1", "l'auditorium"). Return NULL if not specified. match reasonably.
+        - excluded_rooms: list of strings. Identify rooms the user REJECTS or wants to avoid (e.g. "pas la Room 1", "trop petite", "autre que Focus Room").
         
         Instructions:
         - Look at the WHOLE conversation history to determine the current Intention and Slots.
+        - If the user says "I don't need X" or "Not X" in response to a suggestion, it is likely BOOK_INTENT with X in excluded_rooms.
+        - If user asks determining questions like "how big is...", "what is inside...", use ROOM_INFO.
         - If the user is answering a question (e.g. "how many?", "5"), look at the previous message to understand context.
         - Merge new info with previous info implicitly found in history. 
         - Return the FULL STATE of known slots.

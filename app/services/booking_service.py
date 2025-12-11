@@ -48,7 +48,7 @@ class BookingService:
         return conflict is None
 
     @staticmethod
-    def find_potential_rooms(start_time, end_time, attendees: int, required_equipment: list = None, preferred_room_name: str = None):
+    def find_potential_rooms(start_time, end_time, attendees: int, required_equipment: list = None, preferred_room_name: str = None, excluded_room_names: list = None):
         """Find all rooms that are free and fit the attendees."""
         # 1. Filter by capacity
         capable_rooms = Room.query.filter(Room.capacity >= attendees, Room.is_active == True).all()
@@ -65,6 +65,11 @@ class BookingService:
             # Decision: if user asks for specific room and it doesn't exist/fit, return empty to let Upper Layer explain.
             else:
                  return []
+                 
+        # 2.5 Filter Excluded Rooms
+        if excluded_room_names:
+            excluded = [e.lower().strip() for e in excluded_room_names]
+            capable_rooms = [r for r in capable_rooms if not any(ex in r.name.lower() for ex in excluded)]
 
         # 3. Filter by Equipment (if requested)
         if required_equipment:
@@ -324,6 +329,11 @@ class BookingService:
         if booking.user_id != user_id:
             return False, "Unauthorized."
             
+        # Update associated events
+        for event in booking.event:
+            event.booking_id = None
+            event.location = ""
+            
         booking.status = 'cancelled'
         db.session.commit()
         return True, "Booking cancelled successfully."
@@ -342,6 +352,11 @@ class BookingService:
             
         count = 0
         for b in bookings:
+            # Update associated events
+            for event in b.event:
+                event.booking_id = None
+                event.location = ""
+            
             b.status = 'cancelled'
             count += 1
             
