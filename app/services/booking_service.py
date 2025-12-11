@@ -213,7 +213,20 @@ class BookingService:
 
     @staticmethod
     def get_user_bookings(user_id):
-        """Get upcoming confirmed bookings for a user."""
+        """Get upcoming confirmed bookings for a user and auto-delete expired ones."""
+        # 1. Auto-delete expired bookings
+        expired_bookings = Booking.query.filter(
+            Booking.user_id == user_id,
+            Booking.status == 'confirmed',
+            Booking.end_time < datetime.now()
+        ).all()
+        
+        if expired_bookings:
+            for b in expired_bookings:
+                db.session.delete(b)
+            db.session.commit()
+
+        # 2. Return valid upcoming bookings
         return Booking.query.filter(
             Booking.user_id == user_id,
             Booking.status == 'confirmed',
