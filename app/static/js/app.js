@@ -9,18 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('auth-overlay').style.display = 'flex';
     }
 
-    // Toggle Forms
-    document.getElementById('show-register').addEventListener('click', (e) => {
-        e.preventDefault();
-        document.getElementById('login-container').style.display = 'none';
-        document.getElementById('register-container').style.display = 'block';
-    });
-
-    document.getElementById('show-login').addEventListener('click', (e) => {
-        e.preventDefault();
-        document.getElementById('register-container').style.display = 'none';
-        document.getElementById('login-container').style.display = 'block';
-    });
+    // Registration toggles removed
 
     // Login Handler
     document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -29,48 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Register Handler
-    document.getElementById('register-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const u = document.getElementById('reg-username').value;
-        const em = document.getElementById('reg-email').value;
-        const p = document.getElementById('reg-password').value;
-
-        const msg = document.getElementById('register-msg');
-        msg.style.display = 'none';
-        msg.className = 'auth-msg';
-
-        try {
-            const res = await fetch(`${API_BASE}/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: u, email: em, password: p })
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-                // Inline success message
-                msg.textContent = "Compte créé ! Redirection...";
-                msg.classList.add('success');
-                msg.style.display = 'block';
-
-                setTimeout(() => {
-                    document.getElementById('register-container').style.display = 'none';
-                    document.getElementById('login-container').style.display = 'block';
-                    document.getElementById('username').value = u;
-                    document.getElementById('password').value = '';
-                    msg.style.display = 'none';
-                }, 1500);
-            } else {
-                msg.textContent = data.message || "Erreur de création.";
-                msg.classList.add('error');
-                msg.style.display = 'block';
-            }
-        } catch (e) {
-            msg.textContent = "Erreur réseau.";
-            msg.classList.add('error');
-            msg.style.display = 'block';
-        }
-    });
+    // Registration handler removed
 });
 
 // Correcting the Login Logic block because previous one had bug in fetch headers
