@@ -65,13 +65,24 @@ class CalendarService:
                     needs_room = False
                     if not location or location.strip() == "":
                         needs_room = True
+
+                    # Calculate attendee count
+                    attendee_count = 0
+                    attendees = component.get('attendee')
+                    if attendees:
+                        if isinstance(attendees, list):
+                            attendee_count = len(attendees)
+                        else:
+                            attendee_count = 1
+
                         
                     events.append({
                         'summary': summary,
                         'start': start_dt.isoformat(),
                         'end': end_dt.isoformat(),
                         'location': location,
-                        'needs_room': needs_room
+                        'needs_room': needs_room,
+                        'attendee_count': attendee_count
                     })
             
             # Sort by start time

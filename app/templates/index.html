@@ -40,16 +40,14 @@
                     style="height: 2.5rem; width: 2.5rem;">
                 <p>GB<span style="color: #fe6c75;">oo</span>k</p>
             </div>
-            <div class="user-menu-container">
-                <div class="user-avatar-sm" id="user-avatar-sm" onclick="toggleUserMenu()">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <div class="user-avatar-sm" id="user-avatar-sm" style="cursor: default;">
                     AD
                 </div>
-                <div class="user-dropdown" id="user-dropdown">
-                    <div class="dropdown-item" onclick="logout()">
-                        <i data-lucide="log-out"></i>
-                        <span>Sortir</span>
-                    </div>
-                </div>
+                <button class="btn-icon" onclick="logout()"
+                    style="background:transparent; border:none; color:var(--text-muted); cursor:pointer;">
+                    <i data-lucide="log-out"></i>
+                </button>
             </div>
         </header>
 

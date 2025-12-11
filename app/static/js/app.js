@@ -769,7 +769,11 @@ async function loadCalendarEvents() {
             const endTime = end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
             const needsRoomBadge = e.needs_room ? '<span class="badge warning" style="font-size:0.7rem; margin-left:auto;">Sans salle</span>' : '';
-            const locationStr = e.location ? `<span style="font-size:0.8rem; color:#64748b;"><i data-lucide="map-pin" class="icon-xs"></i> ${e.location}</span>` : '';
+            const locationStr = e.location ? `<span><i data-lucide="map-pin" class="icon-xs"></i> ${e.location}</span>` : '';
+            const attendeesStr = e.attendee_count > 0 ? `<span><i data-lucide="users" class="icon-xs"></i> ${e.attendee_count}</span>` : '';
+
+            const metaInfo = [locationStr, attendeesStr].filter(s => s !== '').join('&nbsp;&nbsp;&bull;&nbsp;&nbsp;');
+            const metaHtml = metaInfo ? `<div style="font-size:0.8rem; color:#64748b; display:flex; align-items:center;">${metaInfo}</div>` : '';
 
             list.innerHTML += `
                 <li class="booking-item" style="cursor:default;">
@@ -779,7 +783,7 @@ async function loadCalendarEvents() {
                             ${needsRoomBadge}
                         </div>
                         <div style="font-weight:500;">${e.summary}</div>
-                        ${locationStr}
+                        ${metaHtml}
                     </div>
                 </li>
             `;
@@ -845,20 +849,4 @@ async function handleProfileSubmit(e) {
     }
 }
 
-// --- USER MENU LOGIC ---
-function toggleUserMenu() {
-    const dropdown = document.getElementById('user-dropdown');
-    if (dropdown) {
-        dropdown.classList.toggle('active');
-        lucide.createIcons();
-    }
-}
 
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-    const container = document.querySelector('.user-menu-container');
-    const dropdown = document.getElementById('user-dropdown');
-    if (container && !container.contains(e.target) && dropdown && dropdown.classList.contains('active')) {
-        dropdown.classList.remove('active');
-    }
-});
