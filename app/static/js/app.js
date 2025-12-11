@@ -141,6 +141,118 @@ async function sendMessage() {
     }
 }
 
+
+const micBtn = document.getElementById('mic-btn');
+let recognition;
+let isRecording = false;
+let silenceTimer;
+const SILENCE_DELAY = 2000; // 2 seconds
+
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = true; // Changed to true
+    recognition.lang = 'fr-FR';
+    recognition.interimResults = true; // Changed to true
+
+    recognition.onstart = function () {
+        isRecording = true;
+        micBtn.classList.add('listening');
+    };
+
+    recognition.onend = function () {
+        isRecording = false;
+        micBtn.classList.remove('listening');
+        clearTimeout(silenceTimer);
+
+        // Auto-send if there is text and it was a voice session
+        if (chatInput.value.trim() !== '') {
+            sendMessage();
+        }
+    };
+
+    recognition.onresult = function (event) {
+        clearTimeout(silenceTimer);
+        let finalTranscript = '';
+
+        // Build transcript from results
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                finalTranscript += event.results[i][0].transcript;
+            }
+        }
+
+        // Only update if we have something (simplified for single input)
+        // Ideally we would want to append to existing text, but for this use case 
+        // managing cursor position and previous text vs new voice text can be complex.
+        // We will just set the value to what is being spoken for this session.
+        // Or better: Append to what was there before recording started? 
+        // Let's keep it simple: overwrite or append? 
+        // The user wants "le texte se remplit". 
+        // With continuous=true, we get accumulated results in the session.
+        // We'll trust the latest result is the accumulator for this session.
+
+        // Actually, simplest way for 'continuous' is often just handling the latest result
+        // But let's stick to this robust loop pattern.
+
+        // Note: For a simple command field, we might just want to set the value.
+        // But let's check if we want to preserve previous text. 
+        // User request implies dictation.
+
+        // Allow user to edit while speaking? Maybe not.
+
+        // Let's just set the input to the current transcript of this session
+        // We'll reset chatInput.value = ...
+
+        // IMPORTANT: webkitSpeechRecognition behavior:
+        // results contains all results for the session if continuous=true
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            interimTranscript += event.results[i][0].transcript;
+        }
+
+        // To avoid complexity, we will just APPEND or SET?
+        // Let's just SET for now as it's a "voice command" style.
+        // If user typed something before, it might be lost if we aren't careful.
+        // But usually voice button = fresh input.
+
+        // Let's use a simpler approach for the specific request: 
+        // Just put what is recognized into the box.
+        chatInput.value = interimTranscript;
+        chatInput.focus();
+
+        // Set silence timer
+        silenceTimer = setTimeout(() => {
+            recognition.stop();
+        }, SILENCE_DELAY);
+    };
+
+    recognition.onerror = function (event) {
+        console.error("Speech recognition error", event.error);
+        isRecording = false;
+        micBtn.classList.remove('listening');
+        clearTimeout(silenceTimer);
+    };
+} else {
+    if (micBtn) micBtn.style.display = 'none';
+}
+
+if (micBtn) {
+    micBtn.onclick = () => {
+        if (!recognition) return;
+        if (isRecording) {
+            clearTimeout(silenceTimer);
+            recognition.stop();
+        } else {
+            chatInput.value = ''; // Clear previous input on new start
+            recognition.start();
+        }
+    };
+}
+
+
 if (sendBtn) sendBtn.onclick = sendMessage;
 if (chatInput) chatInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
 
