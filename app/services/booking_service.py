@@ -197,7 +197,7 @@ class BookingService:
         return Booking.query.filter(
             Booking.user_id == user_id,
             Booking.status == 'confirmed',
-            Booking.start_time >= datetime.now()
+            Booking.end_time > datetime.now()
         ).order_by(Booking.start_time).all()
 
     @staticmethod

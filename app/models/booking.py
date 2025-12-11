@@ -17,11 +17,16 @@ class Booking(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Relationship
+    room = db.relationship('Room', lazy=True)
+
     def to_dict(self):
         return {
             'id': self.id,
             'user_id': self.user_id,
             'room_id': self.room_id,
+            'room_name': self.room.name if self.room else f"Room {self.room_id}",
+            'room_capacity': self.room.capacity if self.room else 0,
             'start_time': self.start_time.isoformat(),
             'end_time': self.end_time.isoformat(),
             'title': self.title,

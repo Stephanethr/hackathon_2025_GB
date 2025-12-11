@@ -1,188 +1,380 @@
 :root {
-    --primary: #4F46E5;
-    /* Indigo 600 */
-    --primary-hover: #4338CA;
-    --bg-color: #F3F4F6;
-    --card-bg: #FFFFFF;
-    --text-main: #111827;
-    --text-muted: #6B7280;
-    --border-color: #E5E7EB;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    /* Mobile Palette */
+    --primary: #fe6c75;
+    --primary-soft: #fff0f1;
+    --dark: #1c2a39;
+    --accent: #15A0DA;
+    --bg-app: #f2f4f6;
+    --card-bg: #ffffff;
+    --text-main: #1c2a39;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --nav-height: 70px;
+    --header-height: 60px;
+    --radius: 20px;
 }
 
 body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--bg-color);
+    font-family: 'Outfit', 'Inter', sans-serif;
+    background-color: #cbd5e1;
+    /* Desktop background outside app */
     margin: 0;
     color: var(--text-main);
     height: 100vh;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
 }
 
-/* Auth Overlay */
+/* Mobile App Container */
+.app-container {
+    width: 100%;
+    max-width: 480px;
+    /* Mobile width simulation */
+    height: 100%;
+    background: var(--bg-app);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Login Overlay - Full Screen Mobile Style */
 .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(5px);
+    z-index: 2000;
+    background: var(--dark);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
 }
 
 .auth-box {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: var(--shadow-md);
-    width: 100%;
+    width: 90%;
     max-width: 350px;
+    background: white;
+    padding: 2.5rem;
+    border-radius: 30px;
     text-align: center;
+    position: relative;
+}
+
+.auth-header {
+    margin-bottom: 2rem;
+}
+
+.auth-header i {
+    color: var(--primary);
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0.5rem;
+}
+
+.auth-box h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--dark);
+}
+
+.auth-box p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
 }
 
 .auth-box input {
     width: 100%;
-    padding: 0.75rem;
+    padding: 1rem;
     margin-bottom: 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border: 2px solid var(--border);
+    border-radius: 16px;
     box-sizing: border-box;
+    font-size: 1rem;
+    background: #f8fafc;
+    outline: none;
+    transition: all 0.2s;
 }
 
-/* Layout */
-.app-container {
+.auth-box input:focus {
+    border-color: var(--accent);
+    background: white;
+}
+
+/* Header */
+.app-header {
+    height: var(--header-height);
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+    z-index: 10;
+}
+
+.app-logo {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.user-avatar-sm {
+    width: 36px;
+    height: 36px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Main Content Area */
+.main-content {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    padding-bottom: var(--nav-height);
+    /* Space for bottom nav */
+    scroll-behavior: smooth;
+}
+
+/* Tabs / Views */
+.view-section {
+    display: none;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    min-height: 100%;
+}
+
+.view-section.active {
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease;
+}
+
+.view-section.chat-view {
+    padding: 0;
+    /* Chat needs full width */
+    height: 100%;
+    display: none;
+    /* hidden by default */
+}
+
+.view-section.chat-view.active {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Chat Styling */
+.chat-container {
     display: flex;
     flex-direction: column;
     height: 100%;
 }
 
-.top-bar {
-    background: white;
-    border-bottom: 1px solid var(--border-color);
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.logo {
-    font-weight: 700;
-    font-size: 1.25rem;
-    color: var(--text-main);
-}
-
-.logo span {
-    color: var(--primary);
-}
-
-.main-content {
-    flex: 1;
-    display: flex;
-    gap: 2rem;
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* Sections */
-.chat-section {
-    flex: 2;
-    background: white;
-    border-radius: 12px;
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    height: calc(100vh - 120px);
-}
-
-.chat-header {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
-    font-weight: 600;
-}
-
-.chat-history {
+.chat-messages {
     flex: 1;
     padding: 1rem;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    background: #f9f9f9;
 }
 
-.chat-input-area {
+.chat-input-bar {
     padding: 1rem;
-    border-top: 1px solid var(--border-color);
+    background: white;
+    border-top: 1px solid var(--border);
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    align-items: center;
 }
 
-.chat-input-area input {
+.chat-input-bar input {
     flex: 1;
-    padding: 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: 99px;
+    background: #f1f5f9;
+    border: none;
+    padding: 0.8rem 1.2rem;
+    border-radius: 20px;
+    font-size: 1rem;
     outline: none;
 }
 
-.chat-input-area input:focus {
-    border-color: var(--primary);
+.send-btn {
+    width: 44px;
+    height: 44px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(254, 108, 117, 0.4);
+    cursor: pointer;
 }
 
-.dashboard-section {
-    flex: 1;
+/* Dashboard Widgets */
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 1rem;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.action-card {
+    background: white;
+    border-radius: 20px;
+    padding: 1.2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 1rem;
 }
 
-.card {
+.action-btn {
     background: white;
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: var(--shadow-sm);
-}
-
-.card h3 {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.auth-msg {
-    margin-top: 1rem;
-    padding: 0.75rem;
-    border-radius: 6px;
-    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
     text-align: center;
-    display: none;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.auth-msg.error {
-    background-color: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fecaca;
+.action-btn i {
+    color: var(--accent);
+    margin-bottom: 0.25rem;
 }
 
-.auth-msg.success {
-    background-color: #dcfce7;
-    color: #166534;
-    border: 1px solid #bbf7d0;
+.action-btn:active {
+    background: var(--primary-soft);
+    border-color: var(--primary);
 }
 
-/* Chat Bubbles */
+.action-btn span {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+/* Booking List */
+.booking-item {
+    background: white;
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.booking-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.booking-time {
+    font-weight: 700;
+    color: var(--dark);
+    font-size: 1rem;
+}
+
+.booking-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.btn-delete {
+    background: #fee2e2;
+    color: #ef4444;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: var(--nav-height);
+    background: white;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    flex: 1;
+    height: 100%;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.nav-item.active {
+    color: var(--primary);
+}
+
+.nav-item.active i {
+    fill: rgba(254, 108, 117, 0.1);
+    stroke: var(--primary);
+}
+
+/* Messages */
 .message {
     display: flex;
     gap: 0.75rem;
-    max-width: 80%;
+    max-width: 85%;
 }
 
 .message.user {
@@ -193,118 +385,65 @@ body {
 .message .avatar {
     width: 32px;
     height: 32px;
-    background: var(--border-color);
     border-radius: 50%;
+    background: #e2e8f0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
-    color: var(--text-muted);
+    flex-shrink: 0;
 }
 
 .message.bot .avatar {
-    background: var(--primary);
+    background: var(--dark);
     color: white;
 }
 
+.message.user .avatar {
+    background: var(--primary-soft);
+    color: var(--primary);
+}
+
 .message .text {
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
-    background: #F9FAFB;
-    line-height: 1.5;
+    padding: 0.8rem 1rem;
+    border-radius: 18px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.message.bot .text {
+    background: white;
+    border-top-left-radius: 4px;
 }
 
 .message.user .text {
     background: var(--primary);
     color: white;
-    border-bottom-right-radius: 2px;
+    border-bottom-right-radius: 4px;
 }
 
-.message.bot .text {
-    border-top-left-radius: 2px;
-}
-
-/* Buttons */
+/* Utils */
 .btn-primary {
     background: var(--primary);
     color: white;
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
     width: 100%;
-}
-
-.btn-secondary {
-    background: white;
-    border: 1px solid var(--border-color);
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    display: block;
-    width: 100%;
-    margin-bottom: 0.5rem;
-    text-align: left;
-}
-
-.btn-secondary:hover {
-    background: #F9FAFB;
-}
-
-.btn-icon {
-    background: var(--primary);
-    color: white;
-    width: 42px;
+    padding: 1rem;
+    border-radius: 16px;
     border: none;
-    border-radius: 50%;
-    cursor: pointer;
-}
-
-/* Bookings List */
-#bookings-ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-#bookings-ul li {
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 0.9rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.booking-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.booking-time {
     font-weight: 600;
-    display: block;
-    margin-bottom: 0.25rem;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(254, 108, 117, 0.3);
 }
 
-.booking-room {
-    color: var(--text-muted);
+.auth-msg {
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    padding: 0.5rem;
+    border-radius: 8px;
 }
 
-.delete-btn {
-    width: 32px;
-    height: 32px;
-    background: #EF4444;
-    /* Red 500 */
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-left: 0.5rem;
-}
-
-.delete-btn:hover {
-    background: #DC2626;
+.auth-msg.error {
+    background: #fee2e2;
+    color: #b91c1c;
 }
