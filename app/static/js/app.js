@@ -126,6 +126,10 @@ function setInputAndSwitch(text) {
 const chatHistory = document.getElementById('chat-history');
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
+const soundBtn = document.getElementById('sound-btn');
+
+let isSoundEnabled = true; // Default to on as requested
+
 
 async function sendMessage() {
     const text = chatInput.value.trim();
@@ -204,6 +208,10 @@ async function sendMessage() {
     } catch (err) {
         msgTextContainer.innerHTML = "Erreur de connexion.";
         msgTextContainer.classList.add('error');
+    }
+
+    if (isSoundEnabled && fullResponse) {
+        speakText(fullResponse);
     }
 }
 
@@ -298,6 +306,68 @@ if (micBtn) {
 
 if (sendBtn) sendBtn.onclick = sendMessage;
 if (chatInput) chatInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
+
+// --- TTS LOGIC ---
+if (soundBtn) {
+    updateSoundIcon();
+    soundBtn.onclick = () => {
+        isSoundEnabled = !isSoundEnabled;
+        updateSoundIcon();
+        if (isSoundEnabled) {
+            speakText("Son activé");
+        } else {
+            window.speechSynthesis.cancel();
+        }
+    };
+}
+
+function updateSoundIcon() {
+    if (!soundBtn) return;
+    const icon = soundBtn.querySelector('i');
+    // Using simple logic or lucide replacement if needed. 
+    // Since we call lucide.createIcons() often, we can just change the data-lucide attr and call it.
+    // But lucide replaces <i> with <svg>, so we might need to reset the innerHTML.
+    soundBtn.innerHTML = isSoundEnabled ? '<i data-lucide="volume-2"></i>' : '<i data-lucide="volume-x"></i>';
+    lucide.createIcons();
+    soundBtn.style.color = isSoundEnabled ? 'var(--primary)' : 'var(--text-muted)';
+}
+
+function speakText(text) {
+    if (!('speechSynthesis' in window)) return;
+
+    // Stop any current speech
+    window.speechSynthesis.cancel();
+
+    // Clean markdown for speech
+    const cleanText = text
+        .replace(/\*\*/g, '')
+        .replace(/__/g, '')
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1') // links
+        .replace(/`/g, '')
+        .replace(/- /g, ', ');
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'fr-FR';
+
+    // Optional: Select a better voice if available
+    const voices = window.speechSynthesis.getVoices();
+    // Try to find a google french voice or just the default
+    const frVoice = voices.find(v => v.lang.includes('fr') && v.name.includes('Google')) || voices.find(v => v.lang.includes('fr'));
+    if (frVoice) utterance.voice = frVoice;
+
+    utterance.rate = 1.1; // Slightly faster to be natural
+    utterance.pitch = 1.0;
+
+    window.speechSynthesis.speak(utterance);
+}
+
+// Load voices carefully (sometimes they load async)
+if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => {
+        // voices loaded
+    };
+}
+
 
 
 // --- ADMIN LOGIC ---
