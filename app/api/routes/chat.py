@@ -25,6 +25,13 @@ def chat(current_user):
         CHAT_CONTEXT[current_user.id] = {'messages': [], 'slots': {}, 'intent': None}
     
     user_context = CHAT_CONTEXT[current_user.id]
+
+    # Ensure context structure integrity
+    if 'messages' not in user_context:
+        user_context['messages'] = []
+    if 'slots' not in user_context:
+        user_context['slots'] = {}
+        
     history = user_context.get('messages', [])
     
     # New NLP Service call (ChatGPT) with history
@@ -458,7 +465,7 @@ def update_context_last_booking(current_user):
     booking_id = data.get('booking_id')
     
     if current_user.id not in CHAT_CONTEXT:
-        CHAT_CONTEXT[current_user.id] = {}
+        CHAT_CONTEXT[current_user.id] = {'messages': [], 'slots': {}, 'intent': None}
         
     CHAT_CONTEXT[current_user.id]['last_confirmed_booking_id'] = booking_id
     # Reset intent but keep last booking reference
@@ -466,3 +473,52 @@ def update_context_last_booking(current_user):
     CHAT_CONTEXT[current_user.id]['slots'] = {}
     
     return jsonify({"message": "Context updated with last booking"}), 200
+
+@chat_bp.route('/greeting', methods=['GET'])
+@token_required
+def get_greeting(current_user):
+    # Proactive check for unbooked next meeting
+    next_event = CalendarService.get_next_unbooked_event(current_user)
+    
+    if next_event:
+        # Check if we have rooms available for this event
+        candidates = BookingService.find_potential_rooms(next_event.start_time, next_event.end_time, next_event.attendee_count or 1)
+        if candidates:
+            # We have a suggestion!
+            # Format friendly message
+            room = candidates[0]
+            start_str = next_event.start_time.strftime('%H:%M')
+            if next_event.start_time.date() != datetime.now().date():
+                start_str = next_event.start_time.strftime('%d/%m à %H:%M')
+                
+            msg = f"Bonjour ! Je vois que vous avez une réunion '{next_event.summary}' prévue à {start_str} sans salle réservée. La salle **{room.name}** est disponible. Souhaitez-vous que je la réserve ?"
+            
+            # We can also attach a payload for quick action if we wanted, 
+            # but for the greeting we usually just return text first, OR we return a rich object.
+            # The frontend expects just text or maybe we can return the same structure as chat?
+            # Let's return a JSON structure that the frontend can parse.
+            
+            payload = {
+                "action_required": "confirm_booking",
+                "payload": {
+                    "room_id": room.id,
+                    "start_time": next_event.start_time.isoformat(),
+                    "end_time": next_event.end_time.isoformat(),
+                    "attendees": next_event.attendee_count or 1,
+                    "title": next_event.summary,
+                    "event_id": next_event.id
+                }
+            }
+            
+            return jsonify({
+                "message": msg,
+                "type": "suggestion", 
+                "data": payload
+            })
+
+    # Default greeting
+    return jsonify({
+        "message": "Bonjour ! Comment puis-je vous aider ?",
+        "type": "greeting",
+        "data": None
+    })

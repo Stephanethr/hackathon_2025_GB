@@ -65,6 +65,7 @@ function showApp() {
 
     lucide.createIcons();
     loadBookings();
+    loadGreeting();
 
     // Set Username
     const username = localStorage.getItem('ws_username') || 'Invité';
@@ -860,5 +861,41 @@ async function handleProfileSubmit(e) {
         alert("Erreur réseau");
     }
 }
+
+async function loadGreeting() {
+    const chatHistory = document.getElementById('chat-history');
+    // Clear initial static message if exists, or finding it
+    // Actually we might want to REPLACE the static content.
+    // The static content is currently:
+    // <div class="message bot"><div class="text">Bonjour ! Comment puis-je vous aider ?</div></div>
+
+    // Let's replace the content of the first message if it exists
+    const firstMsg = chatHistory.querySelector('.message.bot .text');
+    if (firstMsg) {
+        firstMsg.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i>';
+        lucide.createIcons();
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/chat/greeting`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (firstMsg) {
+            firstMsg.innerHTML = formatMarkdown(data.message);
+            // If payload exists (action button)
+            if (data.data && data.data.action_required) {
+                // append action button
+                // We need a reference to the message div
+                const msgDiv = firstMsg.closest('.message');
+                handleAction(data.data, msgDiv);
+            }
+        }
+    } catch (e) {
+        if (firstMsg) firstMsg.textContent = "Bonjour ! Comment puis-je vous aider ?";
+    }
+}
+
 
 

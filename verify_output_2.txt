@@ -1,0 +1,16 @@
+Events after cleanup: 0
+
+--- Test 1: No Events ---
+Status Code: 200
+Response: {'data': None, 'message': 'Bonjour ! Comment puis-je vous aider ?', 'type': 'greeting'}
+
+--- Test 2: Event with location ---
+Response: {'data': {'action_required': 'confirm_booking', 'payload': {'attendees': 1, 'end_time': '2025-12-12T11:47:26.665422', 'event_id': 6, 'room_id': 4, 'start_time': '2025-12-12T10:47:26.665422', 'title': 'Meeting with Room'}}, 'message': "Bonjour ! Je vois que vous avez une réunion 'Meeting with Room' prévue à 10:47 sans salle réservée. La salle **Focus Room 1** est disponible. Souhaitez-vous que je la réserve ?", 'type': 'suggestion'}
+Traceback (most recent call last):
+  File "D:\hackathon_2025_GB\verify_greeting.py", line 105, in <module>
+    test_greeting()
+    ~~~~~~~~~~~~~^^
+  File "D:\hackathon_2025_GB\verify_greeting.py", line 72, in test_greeting
+    assert res.get_json()['type'] == 'greeting'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

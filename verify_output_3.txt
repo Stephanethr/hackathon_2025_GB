@@ -1,0 +1,16 @@
+Events after cleanup: 0
+
+--- Test 1 ---
+T1_STATUS:200
+T1_TYPE:greeting
+T1_MSG:Bonjour ! Comment puis-je vous aider ?
+
+--- Test 2 ---
+T2_STATUS:200
+T2_TYPE:suggestion
+
+--- Test 3 ---
+T3_STATUS:200
+T3_TYPE:suggestion
+T3_MSG:Bonjour ! Je vois que vous avez une réunion 'Meeting with Room' prévue à 10:48 sans salle réservée. La salle **Focus Room 1** est disponible. Souhaitez-vous que je la réserve ?
+T3_PAYLOAD:confirm_booking
