@@ -94,6 +94,22 @@ def chat(current_user):
                  next_event = CalendarService.get_next_unbooked_event(current_user)
             
             if next_event:
+                 # Check strict time matching if specific time provided (not midnight default)
+                 # target_dt is the user requested time (e.g. 17:00)
+                 if target_dt.hour != 0 or target_dt.minute != 0:
+                     # Convert event to local naive for comparison
+                     ev_local = next_event.start_time
+                     if ev_local.tzinfo:
+                         ev_local = ev_local.astimezone(None)
+                     ev_local = ev_local.replace(tzinfo=None)
+                     
+                     # Tolerance: 2.5 hours (9000s). 
+                     # If I ask 17h and event is 9h -> Diff 8h -> Ignore.
+                     # If I ask 17h and event is 17h30 -> Diff 30m -> Keep.
+                     if abs((ev_local - target_dt).total_seconds()) > 9000:
+                         next_event = None
+
+            if next_event:
                  # Determine effective attendees
                  # If user provided attendees (in slots), use it caused it valid. Otherwise use event default.
                  effective_attendees = slots.get('attendees') or next_event.attendee_count
@@ -304,7 +320,7 @@ def chat(current_user):
                  return respond("User wants to cancel last booking, but none found.")
              
              start_fmt = last_booking.start_time.strftime('%d/%m à %H:%M')
-             ctx = f"Found the last booking: Room {last_booking.room_id} on {start_fmt}. Ask user to confirm cancellation."
+             ctx = f"Found the last booking: Room {last_booking.room.name} on {start_fmt}. Ask user to confirm cancellation."
              payload = {"action_required": "confirm_cancel", "payload": { "booking_id": last_booking.id }}
              return respond(ctx, payload)
         
@@ -322,7 +338,7 @@ def chat(current_user):
         if len(candidates) == 1:
             b = candidates[0]
             start_fmt = b.start_time.strftime('%d/%m à %H:%M')
-            ctx = f"Found one booking to cancel: Room {b.room_id} on {start_fmt}. Ask user to confirm cancellation."
+            ctx = f"Found one booking to cancel: Room {b.room.name} on {start_fmt}. Ask user to confirm cancellation."
             payload = {"action_required": "confirm_cancel", "payload": { "booking_id": b.id }}
             return respond(ctx, payload)
             
@@ -330,7 +346,7 @@ def chat(current_user):
             ctx = f"Found multiple bookings to cancel. Ask user to specify which one.\nList:\n"
             for b in candidates:
                 start_fmt = b.start_time.strftime('%d/%m à %H:%M')
-                ctx += f"- ID {b.id}: Salle {b.room_id} le {start_fmt}\n"
+                ctx += f"- ID {b.id}: Salle {b.room.name} le {start_fmt}\n"
             
             return respond(ctx)
 
