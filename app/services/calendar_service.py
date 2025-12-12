@@ -151,16 +151,41 @@ class CalendarService:
 
 
     @staticmethod
-    def get_next_unbooked_event(user):
+    def get_next_unbooked_event(user, date_filter=None):
         """
         Finds the next upcoming event for the user that does not have a linked booking.
+        Optionally filter by a specific date.
         """
         now = datetime.now(pytz.utc)
-        return Event.query.filter(
+        query = Event.query.filter(
             Event.user_id == user.id,
-            Event.start_time > now,
             Event.booking_id == None
-        ).order_by(Event.start_time).first()
+        )
+        
+        if date_filter:
+            # Filter specifically for that day
+            # Assuming date_filter is a datetime or date object
+            if isinstance(date_filter, datetime):
+                target_date = date_filter.date()
+            else:
+                target_date = date_filter
+            
+            # Create range for that day
+            start_of_day = datetime.combine(target_date, datetime.min.time())
+            end_of_day = datetime.combine(target_date, datetime.max.time())
+            
+            # Localize if needed (assuming DB stores naive or we compare with what?)
+            # The model seems to store timezone info IF the db supports it, or naive UTC.
+            # Safe bet: Filter assuming stored as UTC or matching input.
+            # If date_filter is provided, we probably want events STARTING on that day.
+            
+            # Let's try simple SQL filter on date() if possible, or range check.
+            query = query.filter(Event.start_time >= start_of_day, Event.start_time <= end_of_day)
+        else:
+            # Default behavior: Future events only
+            query = query.filter(Event.start_time > now)
+            
+        return query.order_by(Event.start_time).first()
 
     @staticmethod
     def link_event_to_booking(event_id, booking_id):

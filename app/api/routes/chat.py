@@ -74,7 +74,18 @@ def chat(current_user):
 
         if missing_fields:
             # Check for unbooked event
-            next_event = CalendarService.get_next_unbooked_event(current_user)
+            next_event = None
+            if start_time_str:
+                 # User specified a date/time. Let's see if there is an unbooked event ON THAT DATE.
+                 try:
+                     target_dt = datetime.fromisoformat(start_time_str)
+                     next_event = CalendarService.get_next_unbooked_event(current_user, date_filter=target_dt)
+                 except ValueError:
+                     pass
+            else:
+                 # User didn't specify a date, so we proactively look for the NEXT unbooked event in general.
+                 next_event = CalendarService.get_next_unbooked_event(current_user)
+            
             if next_event:
                  # Determine effective attendees
                  # If user provided attendees (in slots), use it caused it valid. Otherwise use event default.
