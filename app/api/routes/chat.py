@@ -82,6 +82,8 @@ def chat(current_user):
         if missing_fields:
             # Check for unbooked event
             next_event = None
+            target_dt = None
+            
             if start_time_str:
                  # User specified a date/time. Let's see if there is an unbooked event ON THAT DATE.
                  try:
@@ -96,7 +98,7 @@ def chat(current_user):
             if next_event:
                  # Check strict time matching if specific time provided (not midnight default)
                  # target_dt is the user requested time (e.g. 17:00)
-                 if target_dt.hour != 0 or target_dt.minute != 0:
+                 if target_dt and (target_dt.hour != 0 or target_dt.minute != 0):
                      # Convert event to local naive for comparison
                      ev_local = next_event.start_time
                      if ev_local.tzinfo:
@@ -119,7 +121,28 @@ def chat(current_user):
                  candidates = BookingService.find_potential_rooms(next_event.start_time, next_event.end_time, effective_attendees)
                  if candidates:
                      room = candidates[0]
+                     
+                     # Determine proposal times
+                     # If user requested a specific time (target_dt is set and not 00:00), use it.
+                     # Otherwise, fallback to event time.
+                     proposal_start = next_event.start_time
+                     if target_dt and (target_dt.hour != 0 or target_dt.minute != 0):
+                         proposal_start = target_dt
+                     
+                     # Determine duration
+                     # If user specified duration, use it. Else use event duration.
+                     event_duration = next_event.end_time - next_event.start_time
+                     proposal_end = proposal_start + event_duration
+                     
+                     if slots.get('duration_minutes'):
+                         proposal_end = proposal_start + timedelta(minutes=slots.get('duration_minutes'))
+
                      msg = f"Je vois que vous avez un événement '{next_event.summary}' le {next_event.start_time.strftime('%d/%m à %H:%M')}."
+                     
+                     # Add clarification if we are proposing a DIFFERENT time than the event
+                     if proposal_start != next_event.start_time:
+                         msg += f" (Je réserve pour {proposal_start.strftime('%H:%M')} comme demandé)."
+                         
                      if slots.get('attendees'):
                          msg += f" Pour {effective_attendees} personnes (selon votre demande)."
                      else:
@@ -131,8 +154,8 @@ def chat(current_user):
                         "action_required": "confirm_booking",
                         "payload": {
                             "room_id": room.id,
-                            "start_time": next_event.start_time.isoformat(),
-                            "end_time": next_event.end_time.isoformat(),
+                            "start_time": proposal_start.isoformat(),
+                            "end_time": proposal_end.isoformat(),
                             "attendees": effective_attendees,
                             "title": next_event.summary,
                             "event_id": next_event.id
@@ -412,7 +435,7 @@ def chat(current_user):
              
              # If user specifically requested a new room name:
              if preferred_room_name:
-                  candidates = BookingService.find_potential_rooms(new_start_time, new_end_time, new_attendees, preferred_room_name=preferred_room_name)
+                  candidates = BookingService.find_potential_rooms(new_start_time, new_end_time, new_attendees, preferred_room_name=preferred_room_name, exclude_booking_id=target_booking_id)
                   if candidates:
                        new_room_id = candidates[0].id
                   else:
@@ -422,7 +445,7 @@ def chat(current_user):
                   current_room = Room.query.get(new_room_id)
                   if current_room.capacity < new_attendees:
                        # Need to find a new room
-                       candidates = BookingService.find_potential_rooms(new_start_time, new_end_time, new_attendees)
+                       candidates = BookingService.find_potential_rooms(new_start_time, new_end_time, new_attendees, exclude_booking_id=target_booking_id)
                        if candidates:
                             new_room_id = candidates[0].id
                        else:
@@ -431,7 +454,7 @@ def chat(current_user):
                   # Check availability of the (potentially same) room
                   if not BookingService.check_availability(new_room_id, new_start_time, new_end_time, exclude_booking_id=target_booking_id):
                        # Conflict. Try find another room?
-                       candidates = BookingService.find_potential_rooms(new_start_time, new_end_time, new_attendees)
+                       candidates = BookingService.find_potential_rooms(new_start_time, new_end_time, new_attendees, exclude_booking_id=target_booking_id)
                        if candidates:
                             new_room_id = candidates[0].id
                        else:

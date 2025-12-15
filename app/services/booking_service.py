@@ -48,7 +48,7 @@ class BookingService:
         return conflict is None
 
     @staticmethod
-    def find_potential_rooms(start_time, end_time, attendees: int, required_equipment: list = None, preferred_room_name: str = None, excluded_room_names: list = None):
+    def find_potential_rooms(start_time, end_time, attendees: int, required_equipment: list = None, preferred_room_name: str = None, excluded_room_names: list = None, exclude_booking_id: int = None):
         """Find all rooms that are free and fit the attendees."""
         # 1. Filter by capacity
         capable_rooms = Room.query.filter(Room.capacity >= attendees, Room.is_active == True).all()
@@ -90,7 +90,7 @@ class BookingService:
 
         available_rooms = []
         for room in capable_rooms:
-            if BookingService.check_availability(room.id, start_time, end_time):
+            if BookingService.check_availability(room.id, start_time, end_time, exclude_booking_id=exclude_booking_id):
                 available_rooms.append(room)
         
         # Sort by capacity ascending (Best fit first)

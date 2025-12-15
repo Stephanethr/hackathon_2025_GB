@@ -48,7 +48,7 @@ class NLPService:
         
         Rules for Slots:
         - attendees: integer. Return NULL if not specified. If user says "several", "plusieurs", "team", "équipe" without number, estimate to 5.
-        - start_time: ISO 8601 format (YYYY-MM-DDTHH:MM:ss). Calculate relative dates (tomorrow, next monday) based on Current Date.
+        - start_time: ISO 8601 format (YYYY-MM-DDTHH:MM:ss). Calculate relative dates (tomorrow, next monday) based on Current Date. **IMPORTANT: If date is specified but NO time, use T00:00:00.**
         - duration_minutes: integer. Return NULL if not specified. Do NOT assume 60.
         - end_time: Calculate based on start_time + duration if not specified.
         - scope: for CANCEL_INTENT. Values: 'ALL' (if "all", "toutes"), 'LAST' (if "last", "dernière", "latest"), 'SINGLE' (default).
